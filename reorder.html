@@ -6,16 +6,41 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>리오더 관리 — JEJEUNOSITY</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f2f2f2;color:#111;min-height:100vh;font-size:14px}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
 input[type=number]{-moz-appearance:textfield}
 
+/* ROLE SELECT */
+.role-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#f2f2f2}
+.role-logo{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;text-align:center}
+.role-sub{font-size:11px;color:#bbb;letter-spacing:2px;margin-bottom:36px;text-align:center}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px}
+.role-btn{background:#fff;border:1.5px solid #e5e5e5;border-radius:16px;padding:24px 14px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.role-btn:active{transform:scale(.96);box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.role-btn.store{border-color:#dbeafe}
+.role-btn.designer{border-color:#fce7f3}
+.role-btn.warehouse{border-color:#dcfce7}
+.role-btn.factory{border-color:#fef9c3}
+.role-ico{font-size:36px;line-height:1}
+.role-name{font-size:15px;font-weight:800}
+.role-desc{font-size:11px;color:#aaa;text-align:center;line-height:1.4}
+.role-indicator{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e5e5e5;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;z-index:200}
+.role-indicator-name{font-size:13px;font-weight:700}
+.role-indicator-sub{font-size:11px;color:#aaa;margin-top:1px}
+.change-role-btn{font-size:12px;color:#aaa;background:none;border:none;cursor:pointer;padding:4px 8px}
+
 /* HEADER */
 .hdr{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .hdr-logo{font-size:16px;font-weight:800;letter-spacing:-.5px}
 .hdr-sub{font-size:10px;color:#bbb;letter-spacing:1px;margin-top:1px}
+.role-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:2px;display:inline-block}
+.rt-store{background:#dbeafe;color:#1a56cc}
+.rt-designer{background:#fce7f3;color:#a01860}
+.rt-warehouse{background:#dcfce7;color:#1a7a3c}
 .factory-bar{background:#111;color:#fff;text-align:center;padding:5px;font-size:11px;font-weight:700;letter-spacing:2px;display:none}
 
 /* NAV */
@@ -38,14 +63,11 @@ input[type=number]{-moz-appearance:textfield}
 .main{padding:14px 14px 76px;max-width:430px;margin:0 auto}
 .screen{display:none}
 .screen.on{display:block}
-
-/* OWN HEADER */
 .own-hdr{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 14px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 
 /* SEASON CARDS */
 .season-card{background:#fff;border-radius:14px;border:1px solid #e5e5e5;padding:18px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s;display:flex;align-items:center;gap:14px}
 .season-card:active{box-shadow:0 2px 10px rgba(0,0,0,.1)}
-.season-card.active-season{border-color:#111;border-width:2px}
 .season-ico{width:48px;height:48px;border-radius:12px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
 .season-info{flex:1;min-width:0}
 .season-name{font-size:17px;font-weight:800;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -55,9 +77,8 @@ input[type=number]{-moz-appearance:textfield}
 .season-prog-label{font-size:11px;color:#aaa;margin-top:4px}
 .season-arrow{font-size:18px;color:#ccc;flex-shrink:0}
 .add-season-btn{background:#fff;border:2px dashed #ddd;border-radius:14px;padding:18px;text-align:center;cursor:pointer;color:#aaa;font-size:14px;font-weight:600;margin-bottom:10px}
-.add-season-btn:active{background:#f8f8f8}
 
-/* ORDER CARDS */
+/* CARDS */
 .card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;margin-bottom:10px;overflow:hidden}
 .card-tap{cursor:pointer;transition:box-shadow .15s}
 .card-tap:active{box-shadow:0 2px 8px rgba(0,0,0,.1)}
@@ -72,7 +93,7 @@ input[type=number]{-moz-appearance:textfield}
 .b-green{background:#edfaf1;color:#1a7a3c}
 
 /* PIPELINE */
-.pipe{display:flex;padding:8px 14px 13px;overflow-x:auto}
+.pipe{display:flex;padding:8px 14px 13px}
 .pipe-step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;min-width:0}
 .pipe-step::before{content:'';position:absolute;top:6px;left:calc(-50% + 7px);right:calc(50% + 7px);height:2px;background:#e5e5e5}
 .pipe-step:first-child::before{display:none}
@@ -117,7 +138,19 @@ input[type=number]{-moz-appearance:textfield}
 .tab{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;border:1px solid #e5e5e5;background:#fff;color:#888;flex-shrink:0}
 .tab.on{background:#111;color:#fff;border-color:#111}
 
-/* OVERVIEW GRAPH */
+/* DESIGNER / WAREHOUSE ROLE VIEWS */
+.role-section-title{font-size:12px;font-weight:700;color:#aaa;letter-spacing:.5px;text-transform:uppercase;margin:16px 0 8px}
+.role-section-title:first-child{margin-top:0}
+.quick-action-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px}
+.quick-action-card:active{background:#f8f8f8}
+.qa-ico{font-size:22px;flex-shrink:0}
+.qa-info{flex:1;min-width:0}
+.qa-title{font-size:14px;font-weight:700;margin-bottom:3px}
+.qa-desc{font-size:12px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qa-badge{font-size:12px;font-weight:700;color:#e53;flex-shrink:0}
+.wh-confirm-btn{width:100%;padding:12px;border:none;border-radius:10px;background:#1a7a3c;color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
+
+/* OVERVIEW */
 .ov-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:16px;margin-bottom:12px}
 .ov-title{font-size:14px;font-weight:800;margin-bottom:14px}
 .ov-big{font-size:42px;font-weight:800;margin-bottom:4px}
@@ -131,9 +164,7 @@ input[type=number]{-moz-appearance:textfield}
 .stage-bar-fill{height:100%;border-radius:6px;transition:width .6s}
 .stage-bar-text{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:#111}
 .stage-count{font-size:14px;font-weight:800;width:28px;text-align:right;flex-shrink:0}
-.stage-colors{pending:'#ddd',fabric_ordered:'#bfdbfe',partial_delivery:'#fed7aa',factory_received:'#fef08a',cutting_done:'#bbf7d0',warehouse_received:'#86efac',complete:'#22c55e'}
-
-.ov-order-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.ov-order-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5;cursor:pointer}
 .ov-order-item:last-child{border:none}
 .ov-order-name{flex:1;font-size:13px;font-weight:600}
 .ov-order-color{font-size:12px;color:#aaa}
@@ -145,10 +176,9 @@ input[type=number]{-moz-appearance:textfield}
 .ov-line{width:12px;height:2px;background:#e5e5e5}
 .ov-line.done{background:#1a7a3c}
 
-/* SHARE SCREEN */
+/* SHARE */
 .share-option{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:16px;margin-bottom:10px}
 .share-opt-title{font-size:14px;font-weight:800;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.share-opt-body{font-size:13px;color:#666;line-height:1.7}
 .share-step{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
 .share-step-num{width:22px;height:22px;border-radius:50%;background:#111;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 .share-step-txt{font-size:13px;color:#444;line-height:1.6}
@@ -156,7 +186,7 @@ input[type=number]{-moz-appearance:textfield}
 
 /* FORM */
 .fsec{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:15px;margin-bottom:10px}
-.fsec-title{font-size:13px;font-weight:700;margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid #f2f2f2}
+.fsec-title{font-size:13px;font-weight:700;margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid #f2f2f2;display:flex;align-items:center;justify-content:space-between}
 .frow{margin-bottom:13px}
 .frow:last-child{margin-bottom:0}
 .flabel{font-size:12px;font-weight:500;color:#555;margin-bottom:5px;display:block}
@@ -165,7 +195,17 @@ input[type=number]{-moz-appearance:textfield}
 textarea.finput{resize:none;height:70px;line-height:1.5}
 select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 
-/* SIZE GRID — 크게 */
+/* COLOR ENTRY */
+.color-entry{background:#f9f9f9;border-radius:10px;border:1.5px solid #e5e5e5;padding:13px;margin-bottom:10px}
+.color-entry-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.color-entry-label{font-size:12px;font-weight:700;color:#555;flex-shrink:0}
+.color-name-input{flex:1;border:1px solid #e5e5e5;border-radius:8px;padding:8px 12px;font-size:14px;font-weight:600;outline:none;background:#fff;color:#111;-webkit-appearance:none}
+.color-name-input:focus{border-color:#111}
+.color-remove-btn{width:28px;height:28px;border-radius:50%;background:#fee2e2;border:none;color:#c42020;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.add-color-btn{width:100%;padding:11px;border:2px dashed #ddd;border-radius:10px;background:#fff;color:#aaa;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:10px}
+.add-color-btn:active{background:#f8f8f8}
+
+/* SIZE GRID */
 .szgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
 .szitem{display:flex;flex-direction:column;align-items:center;gap:4px}
 .szlbl{font-size:11px;font-weight:700;color:#555}
@@ -173,7 +213,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .szinput:focus{border-color:#111}
 .sztotal{grid-column:1/-1;background:#f5f5f5;border-radius:8px;padding:10px;text-align:center;font-size:15px;font-weight:800}
 
-/* SIZE DISPLAY — 크게 */
+/* SIZE DISPLAY */
 .szdisplay{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}
 .szd-item{text-align:center;background:#f8f8f8;border-radius:8px;padding:9px 4px}
 .szd-lbl{font-size:11px;font-weight:700;color:#999;display:block;margin-bottom:3px}
@@ -214,7 +254,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .actbtn.warn .actbtn-check{background:#a01860;border-color:#a01860;color:#fff}
 .actbtn:disabled,.actbtn[disabled]{opacity:.4;pointer-events:none}
 
-/* CUTTING RESULT */
+/* CUTTING */
 .cut-result{background:#fefce8;border-radius:9px;padding:12px;margin:4px 0 8px}
 .cut-title{font-size:12px;font-weight:700;color:#926800;margin-bottom:9px}
 .cut-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:9px}
@@ -233,12 +273,11 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .alert-item-title{font-size:14px;font-weight:700;margin-bottom:3px}
 .alert-item-desc{font-size:12px;color:#888;line-height:1.4}
 
-/* FACTORY VIEW */
+/* FACTORY */
 .fcard{background:#fff;border-radius:14px;border:2px solid #e5e5e5;padding:18px;margin-bottom:14px}
 .fcard.needs{border-color:#1a56cc}
 .fprod{font-size:24px;font-weight:800;margin-bottom:5px}
 .fmeta{font-size:14px;color:#888;margin-bottom:14px}
-/* 공장뷰 사이즈 — 더 크게 */
 .fsizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .fsize-item{text-align:center;background:#f5f5f5;border-radius:10px;padding:14px 5px}
 .fsize-lbl{font-size:12px;font-weight:700;color:#888;display:block;margin-bottom:5px}
@@ -246,7 +285,6 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .fsize-val.zero{color:#ddd}
 .fbtn{width:100%;padding:16px;border:none;border-radius:11px;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:8px}
 .fbtn-confirm{background:#1a56cc;color:#fff}
-.fbtn-done{background:#edfaf1;color:#1a7a3c;border:2px solid #1a7a3c}
 .fbtn-acc{background:#fdf0f7;color:#a01860;border:2px solid #a01860}
 .fcut-section{background:#fefce8;border-radius:10px;padding:14px;margin-top:10px}
 .fcut-title{font-size:15px;font-weight:800;color:#926800;margin-bottom:12px}
@@ -262,8 +300,6 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .sheet{background:#fff;border-radius:20px 20px 0 0;padding:18px 15px 32px;width:100%;max-height:88vh;overflow-y:auto}
 .sheet-handle{width:34px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 15px}
 .sheet-title{font-size:17px;font-weight:800;margin-bottom:15px}
-
-/* SHEET CUT INPUT */
 .cutgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .cutitem{display:flex;flex-direction:column;align-items:center;gap:3px}
 .cutitem-lbl{font-size:11px;font-weight:700;color:#926800}
@@ -282,26 +318,55 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
 .ch-gray{background:#f0f0f0;color:#555}
 .ch-green{background:#edfaf1;color:#1a7a3c}
-.divider{height:1px;background:#f2f2f2;margin:12px 0}
 </style>
 </head>
 <body>
 
-<div class="factory-bar" id="factoryBar">▲ 공장 전용 모드</div>
-
-<!-- MAIN HEADER (시즌 목록 화면) -->
-<div class="hdr" id="mainHdr">
-  <div>
-    <div class="hdr-logo">리오더 관리</div>
-    <div class="hdr-sub">JEJEUNOSITY</div>
-  </div>
-  <div style="display:flex;gap:8px">
-    <button class="btn btn-ghost btn-sm" onclick="goShare()" style="width:auto">📤 공유</button>
-    <button class="btn btn-ghost btn-sm" onclick="enterFactory()" style="width:auto">🏭 공장</button>
+<!-- ═══ ROLE SELECT (홈) ═══ -->
+<div id="screen-role" class="screen on">
+  <div class="role-screen">
+    <div class="role-logo">JEJEUNOSITY</div>
+    <div class="role-sub">REORDER MANAGEMENT</div>
+    <div class="role-grid">
+      <div class="role-btn store" onclick="selectRole('store')">
+        <span class="role-ico">🏪</span>
+        <span class="role-name">매장 직원</span>
+        <span class="role-desc">리오더 수량<br>등록 및 확인</span>
+      </div>
+      <div class="role-btn designer" onclick="selectRole('designer')">
+        <span class="role-ico">✏️</span>
+        <span class="role-name">디자이너</span>
+        <span class="role-desc">원단 발주<br>부자재 관리</span>
+      </div>
+      <div class="role-btn warehouse" onclick="selectRole('warehouse')">
+        <span class="role-ico">📦</span>
+        <span class="role-name">창고 직원</span>
+        <span class="role-desc">입고 확인<br>재고 관리</span>
+      </div>
+      <div class="role-btn factory" onclick="selectRole('factory')">
+        <span class="role-ico">🏭</span>
+        <span class="role-name">공장 사장님</span>
+        <span class="role-desc">원단 입고<br>재단 수량 입력</span>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- SEASON CONTEXT HEADER (시즌 내부) -->
+<div class="factory-bar" id="factoryBar">▲ 공장 전용 모드</div>
+
+<!-- MAIN HEADER -->
+<div class="hdr" id="mainHdr" style="display:none">
+  <div>
+    <div class="hdr-logo">리오더 관리</div>
+    <div id="roleTag"></div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="syncStatus" style="font-size:11px;color:#aaa"></span>
+    <button class="btn btn-ghost btn-sm" onclick="goShare()" style="width:auto">📤 공유</button>
+  </div>
+</div>
+
+<!-- SEASON CONTEXT HEADER -->
 <div class="ctx-hdr" id="ctxHdr" style="display:none">
   <div class="ctx-hdr-left">
     <button class="back-btn" onclick="exitSeason()">←</button>
@@ -314,21 +379,30 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 </div>
 
 <!-- NAV -->
-<div class="nav" id="mainNav">
+<div class="nav" id="mainNav" style="display:none">
   <div class="nav-item on" id="nav0" onclick="navGo('seasons')"><span class="nav-icon">📁</span><span class="nav-lbl">시즌</span></div>
   <div class="nav-item" id="nav1" onclick="navGo('alerts')"><span class="nav-icon">🔔</span><span class="nav-lbl">알림</span><span class="nav-dot" id="alertDot"></span></div>
   <div class="nav-item" id="nav2" onclick="navGo('done')"><span class="nav-icon">📦</span><span class="nav-lbl">완료</span></div>
 </div>
 
+<!-- ROLE INDICATOR (하단 고정) -->
+<div class="role-indicator" id="roleIndicator" style="display:none">
+  <div>
+    <div class="role-indicator-name" id="roleIndicatorName"></div>
+    <div class="role-indicator-sub">역할 선택됨</div>
+  </div>
+  <button class="change-role-btn" onclick="changeRole()">역할 변경</button>
+</div>
+
 <!-- FAB -->
 <button class="fab" id="fab" onclick="goNew()" style="display:none">+</button>
 
-<!-- ═══════════════ SCREEN: 시즌 목록 ═══════════════ -->
-<div class="screen on main" id="screen-seasons">
+<!-- ═══ SCREEN: 시즌 목록 ═══ -->
+<div class="screen main" id="screen-seasons" style="display:none">
   <div id="seasonList"></div>
 </div>
 
-<!-- ═══════════════ SCREEN: 주문 목록 ═══════════════ -->
+<!-- ═══ SCREEN: 주문 목록 ═══ -->
 <div class="screen" id="screen-orders">
   <div class="main" style="padding-top:14px">
     <div class="stats" id="statsRow"></div>
@@ -344,26 +418,40 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   </div>
 </div>
 
-<!-- ═══════════════ SCREEN: 진행 현황 ═══════════════ -->
+<!-- ═══ SCREEN: 디자이너 뷰 ═══ -->
+<div class="screen" id="screen-designer">
+  <div class="main" style="padding-top:14px">
+    <div id="designerBody"></div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: 창고 뷰 ═══ -->
+<div class="screen" id="screen-warehouse">
+  <div class="main" style="padding-top:14px">
+    <div id="warehouseBody"></div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: 현황 ═══ -->
 <div class="screen" id="screen-overview">
   <div class="main" style="padding-top:14px">
     <div id="overviewBody"></div>
   </div>
 </div>
 
-<!-- ═══════════════ SCREEN: 알림 ═══════════════ -->
+<!-- ═══ SCREEN: 알림 ═══ -->
 <div class="screen main" id="screen-alerts">
   <div class="page-title">알림</div>
   <div id="alertsList"></div>
 </div>
 
-<!-- ═══════════════ SCREEN: 완료 ═══════════════ -->
+<!-- ═══ SCREEN: 완료 ═══ -->
 <div class="screen main" id="screen-done">
   <div class="page-title">완료된 리오더</div>
   <div id="doneList"></div>
 </div>
 
-<!-- ═══════════════ SCREEN: 공유 가이드 ═══════════════ -->
+<!-- ═══ SCREEN: 공유 ═══ -->
 <div class="screen" id="screen-share">
   <div class="own-hdr">
     <button class="back-btn" onclick="navGo('seasons')">← 돌아가기</button>
@@ -371,42 +459,44 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <div style="width:60px"></div>
   </div>
   <div class="main" style="padding-top:14px">
-
     <div class="share-option">
-      <div class="share-opt-title">📤 데이터 내보내기 / 가져오기 <span class="recommend-badge">추천</span></div>
-      <div class="share-opt-body" style="margin-bottom:12px">카카오톡으로 JSON 파일을 공유하는 방법입니다.<br>실시간 공유는 아니지만 추가 비용이 없습니다.</div>
+      <div class="share-opt-title">🔄 Firebase 실시간 동기화 <span class="recommend-badge" style="background:#1a7a3c">자동연결</span></div>
+      <div style="font-size:13px;color:#1a5c30;line-height:1.8">
+        모든 기기에서 데이터가 자동으로 동기화됩니다.<br>
+        한 사람이 변경하면 다른 모든 기기에 즉시 반영됩니다.
+      </div>
+    </div>
+    <div class="share-option">
+      <div class="share-opt-title">🌐 앱 주소 공유</div>
+      <div style="font-size:13px;color:#444;line-height:1.8">
+        <b>URL:</b> https://jejeunosity1-ship-it.github.io/reorder-app/reorder.html<br>
+        이 주소를 카카오톡으로 공유하세요.<br>
+        iPhone Safari → 공유 → 홈 화면에 추가 → 앱처럼 사용
+      </div>
+    </div>
+    <div class="share-option">
+      <div class="share-opt-title">💾 백업 (내보내기 / 가져오기)</div>
+      <div style="font-size:13px;color:#aaa;margin-bottom:10px">비상용 백업 — 평소에는 Firebase 자동동기화 사용</div>
       <div class="btnrow">
-        <button class="btn btn-dark" onclick="exportData()">📥 내보내기 (저장)</button>
-        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📂 가져오기 (불러오기)</button>
+        <button class="btn btn-dark" onclick="exportData()">📥 내보내기</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()">📂 가져오기</button>
       </div>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this)">
-      <div class="notebox" style="margin-top:10px">내보내기 → JSON 파일 저장 → 카카오톡으로 전송 → 받은 사람이 가져오기</div>
     </div>
-
     <div class="share-option">
-      <div class="share-opt-title">🌐 GitHub Pages 공유 (전체 팀 실시간)</div>
-      <div class="share-opt-body" style="margin-bottom:10px">이 방법을 쓰면 모든 멤버가 같은 URL에 접속하지만, 각 기기에 데이터가 별도로 저장됩니다. 데이터 공유는 위 내보내기/가져오기 방법을 병행하세요.</div>
-      <div class="share-step"><div class="share-step-num">1</div><div class="share-step-txt"><b>github.com</b> 가입 후 새 저장소(Repository) 생성<br><span style="color:#aaa">이름 예: jejeunosity-reorder</span></div></div>
-      <div class="share-step"><div class="share-step-num">2</div><div class="share-step-txt">이 HTML 파일을 <b>index.html</b> 이름으로 저장소에 업로드</div></div>
-      <div class="share-step"><div class="share-step-num">3</div><div class="share-step-txt">Settings → Pages → Branch: main 선택 → Save</div></div>
-      <div class="share-step"><div class="share-step-num">4</div><div class="share-step-txt"><b>https://아이디.github.io/jejeunosity-reorder</b><br>이 URL을 카카오톡으로 공유</div></div>
-      <div class="notebox">iPhone에서 Safari로 열고 공유 → 홈 화면에 추가 하면 앱처럼 사용 가능합니다</div>
-    </div>
-
-    <div class="share-option">
-      <div class="share-opt-title">💡 사용자별 역할 안내</div>
+      <div class="share-opt-title">💡 역할별 안내</div>
       <div style="font-size:13px;color:#444;line-height:1.8">
-        <b>매장 직원</b> — 새 리오더 등록, 수량 입력<br>
-        <b>디자이너</b> — 원단 발주 처리, 부자재 발주 확인, 알림 탭 주시<br>
-        <b>공장 사장님</b> — 우측 상단 🏭 공장모드 버튼 사용<br>
-        <b>창고 직원</b> — 주문 상세에서 창고 입고 확인 처리
+        앱 접속 → 본인 역할 선택 → 해당 화면으로 자동 이동<br><br>
+        <b>매장직원</b> — 리오더 등록, 수량 입력<br>
+        <b>디자이너</b> — 원단발주 처리, 부자재 알림 확인<br>
+        <b>공장사장님</b> — 원단입고 확인, 재단수량 입력<br>
+        <b>창고직원</b> — 창고 입고 확인
       </div>
     </div>
-
   </div>
 </div>
 
-<!-- ═══════════════ SCREEN: 새 주문 ═══════════════ -->
+<!-- ═══ SCREEN: 새 주문 ═══ -->
 <div class="screen" id="screen-new">
   <div class="own-hdr">
     <button class="back-btn" onclick="exitToOrders()">← 취소</button>
@@ -418,24 +508,18 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div class="fsec-title">기본 정보</div>
       <div class="frow"><label class="flabel">날짜</label><input type="date" class="finput" id="nDate"></div>
       <div class="frow"><label class="flabel">제품명</label><input type="text" class="finput" id="nName" placeholder="예: 베리씬가디건"></div>
-      <div class="frow"><label class="flabel">컬러</label><input type="text" class="finput" id="nColor" placeholder="예: 핑크"></div>
     </div>
+
+    <!-- 색상별 수량 -->
     <div class="fsec">
-      <div class="fsec-title">리오더 수량</div>
-      <div class="szgrid">
-        <div class="szitem"><span class="szlbl">18M</span><input type="number" class="szinput" id="sz-18M" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">XS</span><input type="number" class="szinput" id="sz-XS" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">S</span><input type="number" class="szinput" id="sz-S" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">M</span><input type="number" class="szinput" id="sz-M" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">L</span><input type="number" class="szinput" id="sz-L" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">XL</span><input type="number" class="szinput" id="sz-XL" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">JS</span><input type="number" class="szinput" id="sz-JS" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">JM</span><input type="number" class="szinput" id="sz-JM" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem"><span class="szlbl">Free</span><input type="number" class="szinput" id="sz-Free" value="0" min="0" oninput="calcTotal()"></div>
-        <div class="szitem" style="visibility:hidden"></div>
-        <div class="sztotal">총 <span id="totalDisp">0</span>장</div>
+      <div class="fsec-title">
+        <span>색상별 수량</span>
+        <span id="totalSummary" style="font-size:12px;color:#aaa;font-weight:400"></span>
       </div>
+      <div id="colorList"></div>
+      <button class="add-color-btn" onclick="addColor()">+ 색상 추가</button>
     </div>
+
     <div class="fsec">
       <div class="fsec-title">원단 정보</div>
       <div class="frow"><label class="flabel">원단 상호명</label><input type="text" class="finput" id="nFabricCo" placeholder="원단 거래처명"></div>
@@ -457,7 +541,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   </div>
 </div>
 
-<!-- ═══════════════ SCREEN: 주문 상세 ═══════════════ -->
+<!-- ═══ SCREEN: 상세 ═══ -->
 <div class="screen" id="screen-detail">
   <div class="own-hdr">
     <button class="back-btn" onclick="exitToOrders()">← 목록</button>
@@ -467,7 +551,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   <div class="main" id="detailBody" style="padding-top:14px"></div>
 </div>
 
-<!-- ═══════════════ SCREEN: 공장 ═══════════════ -->
+<!-- ═══ SCREEN: 공장 ═══ -->
 <div class="screen" id="screen-factory">
   <div class="own-hdr">
     <button class="back-btn" onclick="exitFactory()">← 나가기</button>
@@ -493,11 +577,45 @@ const SZ = ['18M','XS','S','M','L','XL','JS','JM','Free'];
 const SL = {pending:'접수',fabric_ordered:'원단발주',partial_delivery:'부분입고',factory_received:'공장입고',cutting_done:'재단완료',warehouse_received:'창고입고',complete:'완료'};
 const SC = {pending:'b-gray',fabric_ordered:'b-blue',partial_delivery:'b-orange',factory_received:'b-yellow',cutting_done:'b-green',warehouse_received:'b-green',complete:'b-green'};
 const STAGE_CLR = {pending:'#d1d5db',fabric_ordered:'#93c5fd',partial_delivery:'#fdba74',factory_received:'#fde047',cutting_done:'#6ee7b7',warehouse_received:'#34d399',complete:'#10b981'};
+const ROLE_INFO = {
+  store:  {name:'매장직원', tag:'rt-store',  icon:'🏪'},
+  designer:{name:'디자이너', tag:'rt-designer',icon:'✏️'},
+  warehouse:{name:'창고직원',tag:'rt-warehouse',icon:'📦'},
+  factory:{name:'공장사장님',tag:'',          icon:'🏭'}
+};
 
-let seasons = [], orders = [], curSeasonId = null, curOrderId = null, curFilter = 'all', curScreen = 'seasons', curSubTab = 'orders';
+let seasons=[], orders=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders';
+let colorCount = 0;
 
-function load(){ seasons=JSON.parse(localStorage.getItem('jj_seasons')||'[]'); orders=JSON.parse(localStorage.getItem('jj_orders')||'[]'); }
-function save(){ localStorage.setItem('jj_seasons',JSON.stringify(seasons)); localStorage.setItem('jj_orders',JSON.stringify(orders)); }
+// ── Firebase ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDTfiNbbleGz69wr8dYqlOp1vyl3-l3sxY",
+  authDomain: "jejeunosity-reorder.firebaseapp.com",
+  databaseURL: "https://jejeunosity-reorder-default-rtdb.firebaseio.com",
+  projectId: "jejeunosity-reorder",
+  storageBucket: "jejeunosity-reorder.firebasestorage.app",
+  messagingSenderId: "1005352974921",
+  appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const dbRef = db.ref('jj');
+
+function load(){
+  seasons=JSON.parse(localStorage.getItem('jj_seasons')||'[]');
+  orders=JSON.parse(localStorage.getItem('jj_orders')||'[]');
+}
+function save(){
+  localStorage.setItem('jj_seasons',JSON.stringify(seasons));
+  localStorage.setItem('jj_orders',JSON.stringify(orders));
+  const sObj={},oObj={};
+  seasons.forEach(s=>sObj[s.id]=s);
+  orders.forEach(o=>oObj[o.id]=o);
+  setSyncStatus('syncing');
+  dbRef.set({seasons:sObj,orders:oObj})
+    .then(()=>setSyncStatus('synced'))
+    .catch(()=>setSyncStatus('offline'));
+}
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function today(){ return new Date().toISOString().split('T')[0]; }
 function fmtDate(d){ if(!d) return ''; const x=new Date(d); return `${x.getMonth()+1}/${x.getDate()}`; }
@@ -507,73 +625,138 @@ function seasonOrders(sid){ return orders.filter(o=>o.seasonId===sid); }
 function activeOrders(sid){ return seasonOrders(sid).filter(o=>!['warehouse_received','complete'].includes(o.status)); }
 
 // ══════════════════════════════════════════
+// ROLE
+// ══════════════════════════════════════════
+function selectRole(role){
+  curRole = role;
+  localStorage.setItem('jj_role', role);
+
+  if(role === 'factory'){
+    // 공장은 바로 공장모드
+    document.getElementById('factoryBar').style.display='';
+    renderFactory();
+    rawShow('factory');
+    document.getElementById('mainHdr').style.display='none';
+    document.getElementById('mainNav').style.display='none';
+    document.getElementById('ctxHdr').style.display='none';
+    document.getElementById('fab').style.display='none';
+    document.getElementById('roleIndicator').style.display='none';
+    return;
+  }
+
+  // 역할 표시바
+  const ri = ROLE_INFO[role];
+  document.getElementById('roleIndicatorName').textContent = ri.icon + ' ' + ri.name;
+  document.getElementById('roleIndicator').style.display='flex';
+
+  // 헤더 role tag
+  const tagEl = document.getElementById('roleTag');
+  tagEl.innerHTML = ri.tag ? `<span class="role-tag ${ri.tag}">${ri.name}</span>` : '';
+
+  if(role === 'designer'){
+    showMainUI();
+    renderDesigner();
+    rawShow('designer');
+    document.getElementById('mainNav').style.display='none';
+    document.getElementById('ctxHdr').style.display='none';
+    document.getElementById('fab').style.display='none';
+  } else {
+    showMainUI();
+    navGo('seasons');
+  }
+}
+
+function showMainUI(){
+  document.getElementById('mainHdr').style.display='';
+  document.getElementById('mainNav').style.display='flex';
+}
+
+function changeRole(){
+  curRole=null; curSeasonId=null;
+  localStorage.removeItem('jj_role');
+  document.getElementById('factoryBar').style.display='none';
+  document.getElementById('roleIndicator').style.display='none';
+  document.getElementById('mainHdr').style.display='none';
+  document.getElementById('mainNav').style.display='none';
+  document.getElementById('ctxHdr').style.display='none';
+  document.getElementById('fab').style.display='none';
+  rawShow('role');
+}
+
+function exitFactory(){
+  document.getElementById('factoryBar').style.display='none';
+  changeRole();
+}
+
+// ══════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════
 const NAV_IDX = {seasons:0,alerts:1,done:2};
-const OWN_HDR = ['share','new','detail','factory'];
-const CTX_HDR = ['orders','overview'];
+const OWN_SCREENS = ['role','share','new','detail','factory','designer','warehouse'];
+const CTX_SCREENS = ['orders','overview'];
 
-function showScreen(name){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.getElementById('screen-'+name).classList.add('on');
-  curScreen = name;
-
-  const isOwn = OWN_HDR.includes(name);
-  const isCtx = CTX_HDR.includes(name);
-  document.getElementById('mainHdr').style.display = (isOwn||isCtx)?'none':'';
-  document.getElementById('ctxHdr').style.display = isCtx?'':'none';
-  document.getElementById('mainNav').style.display = isOwn?'none':'';
-  document.getElementById('fab').style.display = (name==='orders')?'':'none';
-
-  // nav active
-  document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('on',i===NAV_IDX[name]));
-
+function rawShow(name){
+  document.querySelectorAll('.screen').forEach(s=>{ s.style.display='none'; s.classList.remove('on'); });
+  const el=document.getElementById('screen-'+name);
+  if(el){ el.style.display=''; el.classList.add('on'); }
   window.scrollTo(0,0);
 }
 
+function showScreen(name){
+  rawShow(name);
+  const isOwn = OWN_SCREENS.includes(name);
+  const isCtx = CTX_SCREENS.includes(name);
+  document.getElementById('mainHdr').style.display = (isOwn||isCtx||name==='designer'||name==='warehouse')?'none':name==='seasons'?'':'none';
+  // seasons always shows mainHdr
+  if(name==='seasons') document.getElementById('mainHdr').style.display='';
+  document.getElementById('ctxHdr').style.display = isCtx?'':'none';
+  document.getElementById('mainNav').style.display = (isOwn||name==='designer')?'none':'flex';
+  document.getElementById('fab').style.display = name==='orders'&&curRole!=='warehouse'?'':'none';
+  document.querySelectorAll('.nav-item').forEach((el,i)=>el.classList.toggle('on',i===NAV_IDX[name]));
+}
+
 function navGo(name){
-  if(name==='seasons'){ curSeasonId=null; showScreen('seasons'); renderSeasons(); }
+  if(name==='seasons'){ showScreen('seasons'); renderSeasons(); }
   else if(name==='alerts'){ showScreen('alerts'); renderAlerts(); }
   else if(name==='done'){ showScreen('done'); renderDone(); }
 }
 
+function goShare(){ rawShow('share'); document.getElementById('mainHdr').style.display='none'; document.getElementById('mainNav').style.display='none'; }
+
 function setSubTab(tab){
-  curSubTab = tab;
+  curSubTab=tab;
   document.querySelectorAll('.ctx-subtab').forEach(el=>el.classList.remove('on'));
   document.getElementById('stab-'+tab).classList.add('on');
-  if(tab==='orders'){ showScreen('orders'); renderOrders(); }
-  else if(tab==='overview'){ showScreen('overview'); renderOverview(); }
+  if(tab==='orders'){ rawShow('orders'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display=curRole!=='warehouse'?'':'none'; renderOrders(); }
+  else if(tab==='overview'){ rawShow('overview'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display='none'; renderOverview(); }
 }
 
 function exitSeason(){
-  curSeasonId = null;
-  showScreen('seasons');
-  renderSeasons();
+  curSeasonId=null;
+  if(curRole==='warehouse'){ showScreen('seasons'); renderSeasons(); }
+  else { showScreen('seasons'); renderSeasons(); }
 }
 
 function exitToOrders(){
-  showScreen('orders');
-  renderOrders();
-  renderStats();
-}
-
-function goShare(){
-  showScreen('share');
+  rawShow('orders');
+  document.getElementById('ctxHdr').style.display='flex';
+  document.getElementById('mainNav').style.display='flex';
+  document.getElementById('fab').style.display=curRole!=='warehouse'?'':'none';
+  renderOrders(); renderStats();
 }
 
 // ══════════════════════════════════════════
 // SEASONS
 // ══════════════════════════════════════════
 function renderSeasons(){
-  const c = document.getElementById('seasonList');
-  const html = seasons.map(s=>{
-    const all = seasonOrders(s.id);
-    const done = all.filter(o=>['warehouse_received','complete'].includes(o.status)).length;
-    const pct = all.length>0 ? Math.round(done/all.length*100) : 0;
-    const active = all.filter(o=>!['warehouse_received','complete'].includes(o.status)).length;
-    const al = getAlerts().filter(a=>all.some(o=>o.id===a.id)).length;
-    return `
-    <div class="season-card ${curSeasonId===s.id?'active-season':''}" onclick="enterSeason('${s.id}')">
+  const c=document.getElementById('seasonList');
+  const canAdd = curRole==='store'||curRole===null;
+  const html=seasons.map(s=>{
+    const all=seasonOrders(s.id), done=all.filter(o=>['warehouse_received','complete'].includes(o.status)).length;
+    const pct=all.length>0?Math.round(done/all.length*100):0;
+    const active=all.filter(o=>!['warehouse_received','complete'].includes(o.status)).length;
+    const al=getAlerts().filter(a=>all.some(o=>o.id===a.id)).length;
+    return `<div class="season-card" onclick="enterSeason('${s.id}')">
       <div class="season-ico">🗂</div>
       <div class="season-info">
         <div class="season-name">${s.name}</div>
@@ -584,46 +767,168 @@ function renderSeasons(){
       <div class="season-arrow">›</div>
     </div>`;
   }).join('');
-  c.innerHTML = html + `<div class="add-season-btn" onclick="openNewSeason()">+ 새 시즌 추가</div>`;
+  c.innerHTML = html + (canAdd?`<div class="add-season-btn" onclick="openNewSeason()">+ 새 시즌 추가</div>`:'');
   updateAlertBadge();
 }
 
 function openNewSeason(){
   sheet('새 시즌 추가',`
     <div class="frow"><label class="flabel">시즌 이름</label><input type="text" class="finput" id="sSeasonName" placeholder="예: 26여름1차, 26가을"></div>
-    <div class="btnrow">
-      <button class="btn btn-ghost" onclick="closeSheet()">취소</button>
-      <button class="btn btn-dark" onclick="confirmNewSeason()">추가</button>
-    </div>`);
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmNewSeason()">추가</button></div>`);
   setTimeout(()=>document.getElementById('sSeasonName')?.focus(),100);
 }
-
 function confirmNewSeason(){
-  const name = document.getElementById('sSeasonName').value.trim();
-  if(!name){ alert('시즌 이름을 입력해주세요'); return; }
-  seasons.unshift({id:uid(), name, createdAt:today()});
+  const name=document.getElementById('sSeasonName').value.trim();
+  if(!name){alert('시즌 이름을 입력해주세요');return;}
+  seasons.unshift({id:uid(),name,createdAt:today()});
   save(); closeSheet(); renderSeasons();
 }
 
 function enterSeason(sid){
-  curSeasonId = sid;
-  const s = seasons.find(x=>x.id===sid);
-  document.getElementById('ctxSeasonName').textContent = s?.name||'';
-  curSubTab = 'orders';
+  curSeasonId=sid;
+  const s=seasons.find(x=>x.id===sid);
+  document.getElementById('ctxSeasonName').textContent=s?.name||'';
+  curSubTab='orders';
   document.querySelectorAll('.ctx-subtab').forEach(el=>el.classList.remove('on'));
   document.getElementById('stab-orders').classList.add('on');
-  showScreen('orders');
-  renderOrders();
-  renderStats();
+  rawShow('orders');
+  document.getElementById('ctxHdr').style.display='flex';
+  document.getElementById('mainNav').style.display='flex';
+  document.getElementById('fab').style.display=curRole!=='warehouse'?'':'none';
+  renderOrders(); renderStats();
+
+  // 창고직원이면 창고뷰로
+  if(curRole==='warehouse'){
+    rawShow('warehouse');
+    document.getElementById('ctxHdr').style.display='flex';
+    document.getElementById('mainNav').style.display='flex';
+    document.getElementById('fab').style.display='none';
+    renderWarehouse();
+  }
+}
+
+// ══════════════════════════════════════════
+// DESIGNER VIEW
+// ══════════════════════════════════════════
+function renderDesigner(){
+  const c=document.getElementById('designerBody');
+  const pendingFabric=orders.filter(o=>o.status==='pending');
+  const accAlerts=orders.filter(o=>o.accAlertReq&&!o.accAlertDone);
+  const partials=orders.filter(o=>o.partialDelivery&&o.partialUnresolved);
+
+  let html='';
+
+  // 알림 요약
+  const totalAlerts=accAlerts.length+partials.length;
+  if(totalAlerts>0){
+    html+=`<div class="abanner pink" style="margin-bottom:14px">
+      <span class="abanner-ico">🔔</span>
+      <div><div class="abanner-title" style="color:#8c1a5a">처리 필요 알림 ${totalAlerts}건</div>
+      <div class="abanner-body" style="color:#a01860">부자재 요청 ${accAlerts.length}건 · 부분입고 ${partials.length}건</div></div>
+    </div>`;
+  }
+
+  // 원단발주 대기
+  html+=`<div class="role-section-title">원단 발주 대기 (${pendingFabric.length}건)</div>`;
+  if(!pendingFabric.length) html+=`<div style="color:#aaa;font-size:13px;margin-bottom:16px;text-align:center">없음</div>`;
+  else html+=pendingFabric.map(o=>`
+    <div class="quick-action-card" onclick="showDetail('${o.id}')">
+      <span class="qa-ico">🧵</span>
+      <div class="qa-info">
+        <div class="qa-title">${o.productName} <span style="color:#aaa;font-weight:400">${o.color}</span></div>
+        <div class="qa-desc">총 ${sumSz(o)}장 · ${fmtDate(o.date)}</div>
+      </div>
+      <span style="font-size:12px;color:#1a56cc;font-weight:700">발주처리 →</span>
+    </div>`).join('');
+
+  // 부자재 추가요청
+  if(accAlerts.length){
+    html+=`<div class="role-section-title">부자재 추가발주 요청 (${accAlerts.length}건)</div>`;
+    html+=accAlerts.map(o=>`
+      <div class="quick-action-card" onclick="showDetail('${o.id}')">
+        <span class="qa-ico">🪡</span>
+        <div class="qa-info">
+          <div class="qa-title">${o.productName} <span style="color:#aaa;font-weight:400">${o.color}</span></div>
+          <div class="qa-desc">${o.accAlertNote||'추가 발주 필요'}</div>
+        </div>
+        <span style="font-size:12px;color:#a01860;font-weight:700">확인 →</span>
+      </div>`).join('');
+  }
+
+  // 부분입고
+  if(partials.length){
+    html+=`<div class="role-section-title">부분입고 처리중 (${partials.length}건)</div>`;
+    html+=partials.map(o=>`
+      <div class="quick-action-card" onclick="showDetail('${o.id}')">
+        <span class="qa-ico">⚠️</span>
+        <div class="qa-info">
+          <div class="qa-title">${o.productName} <span style="color:#aaa;font-weight:400">${o.color}</span></div>
+          <div class="qa-desc">${o.partialNote||'잔여 원단 대기중'}</div>
+        </div>
+        <span style="font-size:12px;color:#e85800;font-weight:700">확인 →</span>
+      </div>`).join('');
+  }
+
+  if(!pendingFabric.length&&!accAlerts.length&&!partials.length){
+    html=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">처리할 항목 없음</div><div class="empty-desc">모든 발주가 완료되었습니다</div></div>`;
+  }
+
+  c.innerHTML=html;
+}
+
+// ══════════════════════════════════════════
+// WAREHOUSE VIEW
+// ══════════════════════════════════════════
+function renderWarehouse(){
+  const c=document.getElementById('warehouseBody');
+  const sid=curSeasonId;
+  const waitingList=orders.filter(o=>o.seasonId===sid&&o.status==='cutting_done');
+
+  if(!waitingList.length){
+    c.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-title">창고 입고 대기 없음</div><div class="empty-desc">재단 완료 후 입고 대기 상품이 없습니다</div></div>`;
+    return;
+  }
+
+  c.innerHTML=`<div class="role-section-title">창고 입고 대기 (${waitingList.length}건)</div>`+waitingList.map(o=>{
+    const total=sumSz(o), ct=sumCut(o);
+    const szHtml=SZ.filter(s=>(o.sizes[s]||0)>0).map(s=>`
+      <div class="szd-item"><span class="szd-lbl">${s}</span><span class="szd-val">${o.sizes[s]}</span></div>`).join('');
+    return `<div class="card" style="margin-bottom:12px">
+      <div class="oc-head">
+        <div><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div>
+        <div class="oc-meta">재단 ${ct}장 · ${fmtDate(o.date)}</div></div>
+        <span class="badge b-green">재단완료</span>
+      </div>
+      <div style="padding:0 14px 14px">
+        <div class="szdisplay">${szHtml}</div>
+        <button class="wh-confirm-btn" onclick="whConfirm('${o.id}')">✓ 창고 입고 확인</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function whConfirm(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  if(!confirm(`${o.productName} ${o.color}\n창고 입고 확인 처리하시겠습니까?`)) return;
+  o.status='warehouse_received'; o.whDate=today();
+  save(); renderWarehouse(); updateAlertBadge();
 }
 
 // ══════════════════════════════════════════
 // ORDERS
 // ══════════════════════════════════════════
+function updateAlertBadge(){
+  const tot=getAlerts().length;
+  const dot=document.getElementById('alertDot');
+  dot.style.display=tot>0?'':'none';
+  dot.textContent=tot;
+}
+
 function renderStats(){
-  const list = activeOrders(curSeasonId);
-  const al = getAlerts().filter(a=>seasonOrders(curSeasonId).some(o=>o.id===a.id)).length;
-  const noCut = list.filter(o=>o.status==='factory_received'&&!o.cuttingQty).length;
+  if(!curSeasonId) return;
+  const list=activeOrders(curSeasonId);
+  const al=getAlerts().filter(a=>seasonOrders(curSeasonId).some(o=>o.id===a.id)).length;
+  const noCut=list.filter(o=>o.status==='factory_received'&&!o.cuttingQty).length;
   document.getElementById('statsRow').innerHTML=`
     <div class="stat"><div class="stat-n">${list.length}</div><div class="stat-l">진행중</div></div>
     <div class="stat${al>0?' red':''}"><div class="stat-n">${al}</div><div class="stat-l">주의알림</div></div>
@@ -631,18 +936,11 @@ function renderStats(){
   updateAlertBadge();
 }
 
-function updateAlertBadge(){
-  const tot = getAlerts().length;
-  const dot = document.getElementById('alertDot');
-  dot.style.display = tot>0?'':'none';
-  dot.textContent = tot;
-}
-
 function renderAlertsPreview(){
-  const al = getAlerts().filter(a=>seasonOrders(curSeasonId).some(o=>o.id===a.id)).slice(0,2);
-  const c = document.getElementById('alertsPreview');
-  if(!al.length){ c.innerHTML=''; return; }
-  c.innerHTML = al.map(a=>`
+  const al=getAlerts().filter(a=>curSeasonId&&seasonOrders(curSeasonId).some(o=>o.id===a.id)).slice(0,2);
+  const c=document.getElementById('alertsPreview');
+  if(!al.length){c.innerHTML='';return;}
+  c.innerHTML=al.map(a=>`
     <div class="abanner${a.type==='acc'?' pink':''}" onclick="showDetail('${a.id}')">
       <span class="abanner-ico">${a.type==='partial'?'⚠️':a.type==='acc'?'🧵':'✂️'}</span>
       <div><div class="abanner-title">${a.title}</div><div class="abanner-body">${a.body}</div></div>
@@ -651,19 +949,16 @@ function renderAlertsPreview(){
 
 function renderOrders(){
   renderAlertsPreview();
-  const c = document.getElementById('orderList');
-  if(!curSeasonId){ c.innerHTML=''; return; }
-  let list = activeOrders(curSeasonId);
+  const c=document.getElementById('orderList');
+  if(!curSeasonId){c.innerHTML='';return;}
+  let list=activeOrders(curSeasonId);
   if(curFilter==='pending') list=list.filter(o=>o.status==='pending');
   else if(curFilter==='fabric') list=list.filter(o=>['fabric_ordered','partial_delivery'].includes(o.status));
   else if(curFilter==='factory') list=list.filter(o=>o.status==='factory_received');
   else if(curFilter==='cutting') list=list.filter(o=>o.status==='cutting_done');
-  if(!list.length){
-    c.innerHTML=`<div class="empty"><div class="empty-ico">📭</div><div class="empty-title">진행중인 리오더 없음</div><div class="empty-desc">+ 버튼으로 새 리오더를 등록하세요</div></div>`;
-    return;
-  }
-  list.sort((a,b)=>{ const aa=hasAlerts(a),bb=hasAlerts(b); return aa&&!bb?-1:!aa&&bb?1:new Date(b.date)-new Date(a.date); });
-  c.innerHTML = list.map(orderCard).join('');
+  if(!list.length){c.innerHTML=`<div class="empty"><div class="empty-ico">📭</div><div class="empty-title">진행중인 리오더 없음</div><div class="empty-desc">+ 버튼으로 새 리오더를 등록하세요</div></div>`;return;}
+  list.sort((a,b)=>{const aa=hasAlerts(a),bb=hasAlerts(b);return aa&&!bb?-1:!aa&&bb?1:new Date(b.date)-new Date(a.date);});
+  c.innerHTML=list.map(orderCard).join('');
 }
 
 function setFilter(f,el){
@@ -674,16 +969,15 @@ function setFilter(f,el){
 }
 
 function orderCard(o){
-  const total=sumSz(o), tags=getTags(o), steps=getSteps(o);
-  return `
-    <div class="card card-tap" onclick="showDetail('${o.id}')">
-      <div class="oc-head">
-        <div><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div><div class="oc-meta">${fmtDate(o.date)} · 총 ${total}장</div></div>
-        <span class="badge ${SC[o.status]}">${SL[o.status]}</span>
-      </div>
-      ${tags.length?`<div class="tags">${tags.map(t=>`<span class="tag ${t.c}">${t.l}</span>`).join('')}</div>`:''}
-      <div class="pipe">${steps.map(s=>`<div class="pipe-step ${s.st}"><div class="pipe-dot"></div><div class="pipe-lbl">${s.l}</div></div>`).join('')}</div>
-    </div>`;
+  const total=sumSz(o),tags=getTags(o),steps=getSteps(o);
+  return `<div class="card card-tap" onclick="showDetail('${o.id}')">
+    <div class="oc-head">
+      <div><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div><div class="oc-meta">${fmtDate(o.date)} · 총 ${total}장</div></div>
+      <span class="badge ${SC[o.status]}">${SL[o.status]}</span>
+    </div>
+    ${tags.length?`<div class="tags">${tags.map(t=>`<span class="tag ${t.c}">${t.l}</span>`).join('')}</div>`:''}
+    <div class="pipe">${steps.map(s=>`<div class="pipe-step ${s.st}"><div class="pipe-dot"></div><div class="pipe-lbl">${s.l}</div></div>`).join('')}</div>
+  </div>`;
 }
 
 function getSteps(o){
@@ -694,7 +988,6 @@ function getSteps(o){
   if(['complete','warehouse_received'].includes(o.status)) ci=5;
   return lbl.map((l,i)=>({l,st:i<ci?'done':i===ci?(o.status==='partial_delivery'?'warn':'cur'):'inactive'}));
 }
-
 function getTags(o){
   const t=[];
   if(o.partialDelivery&&o.partialUnresolved) t.push({c:'t-partial',l:'⚠ 부분입고'});
@@ -702,76 +995,39 @@ function getTags(o){
   if(o.status==='factory_received'&&!o.cuttingQty) t.push({c:'t-cut',l:'✂ 재단미입력'});
   return t;
 }
-function hasAlerts(o){ return getTags(o).length>0; }
+function hasAlerts(o){return getTags(o).length>0;}
 
 // ══════════════════════════════════════════
-// OVERVIEW GRAPH
+// OVERVIEW
 // ══════════════════════════════════════════
 function renderOverview(){
-  const c = document.getElementById('overviewBody');
-  if(!curSeasonId){ c.innerHTML=''; return; }
-  const all = seasonOrders(curSeasonId);
-  if(!all.length){
-    c.innerHTML=`<div class="empty"><div class="empty-ico">📊</div><div class="empty-title">등록된 주문 없음</div></div>`;
-    return;
-  }
-  const done = all.filter(o=>['warehouse_received','complete'].includes(o.status)).length;
-  const pct = Math.round(done/all.length*100);
-  const totalPcs = all.reduce((a,o)=>a+sumSz(o),0);
-
-  const stages = [
-    {key:'pending',label:'접수대기'},
-    {key:'fabric_ordered',label:'원단발주'},
-    {key:'partial_delivery',label:'부분입고'},
-    {key:'factory_received',label:'공장입고'},
-    {key:'cutting_done',label:'재단완료'},
-    {key:'warehouse_received',label:'창고입고'},
-  ];
-
-  const stageRows = stages.map(s=>{
-    const cnt = all.filter(o=>o.status===s.key).length;
+  const c=document.getElementById('overviewBody');
+  if(!curSeasonId){c.innerHTML='';return;}
+  const all=seasonOrders(curSeasonId);
+  if(!all.length){c.innerHTML=`<div class="empty"><div class="empty-ico">📊</div><div class="empty-title">등록된 주문 없음</div></div>`;return;}
+  const done=all.filter(o=>['warehouse_received','complete'].includes(o.status)).length;
+  const pct=Math.round(done/all.length*100);
+  const totalPcs=all.reduce((a,o)=>a+sumSz(o),0);
+  const stages=[{key:'pending',label:'접수대기'},{key:'fabric_ordered',label:'원단발주'},{key:'partial_delivery',label:'부분입고'},{key:'factory_received',label:'공장입고'},{key:'cutting_done',label:'재단완료'},{key:'warehouse_received',label:'창고입고'}];
+  const stageRows=stages.map(s=>{
+    const cnt=all.filter(o=>o.status===s.key).length;
     if(!cnt) return '';
-    const w = Math.round(cnt/all.length*100);
-    return `<div class="stage-row">
-      <span class="stage-label">${s.label}</span>
-      <div class="stage-bar-wrap">
-        <div class="stage-bar-fill" style="width:${w}%;background:${STAGE_CLR[s.key]}"></div>
-        <span class="stage-bar-text">${cnt}건</span>
-      </div>
-      <span class="stage-count">${cnt}</span>
-    </div>`;
+    const w=Math.round(cnt/all.length*100);
+    return `<div class="stage-row"><span class="stage-label">${s.label}</span><div class="stage-bar-wrap"><div class="stage-bar-fill" style="width:${w}%;background:${STAGE_CLR[s.key]}"></div><span class="stage-bar-text">${cnt}건</span></div><span class="stage-count">${cnt}</span></div>`;
   }).join('');
-
-  // Per-order mini list
-  const orderRows = all.map(o=>{
-    const steps = getSteps(o);
-    const dots = steps.map((s,i)=>`${i>0?`<div class="ov-line ${s.st==='done'?'done':''}"></div>`:''}
+  const orderRows=all.map(o=>{
+    const steps=getSteps(o);
+    const dots=steps.map((s,i)=>`${i>0?`<div class="ov-line ${s.st==='done'?'done':''}"></div>`:''}
       <div class="ov-dot ${s.st}"></div>`).join('');
-    const tags = getTags(o);
     return `<div class="ov-order-item" onclick="showDetail('${o.id}')">
-      <div style="flex:1;min-width:0">
-        <div class="ov-order-name">${o.productName} <span class="ov-order-color">${o.color}</span></div>
-        ${tags.length?`<div style="display:flex;gap:4px;margin-top:3px">${tags.map(t=>`<span class="tag ${t.c}" style="font-size:10px;padding:1px 6px">${t.l}</span>`).join('')}</div>`:''}
-      </div>
+      <div style="flex:1;min-width:0"><div class="ov-order-name">${o.productName} <span class="ov-order-color">${o.color}</span></div></div>
       <div class="ov-mini-pipe">${dots}</div>
     </div>`;
   }).join('');
-
   c.innerHTML=`
-    <div class="ov-card">
-      <div class="ov-title">전체 진행률</div>
-      <div class="ov-big">${pct}%</div>
-      <div class="ov-sub">완료 ${done}건 / 전체 ${all.length}건 · 총 ${totalPcs.toLocaleString()}장</div>
-      <div class="ov-total-bar"><div class="ov-total-fill" style="width:${pct}%"></div></div>
-    </div>
-    <div class="ov-card">
-      <div class="ov-title">단계별 현황</div>
-      <div class="stage-list">${stageRows}</div>
-    </div>
-    <div class="ov-card">
-      <div class="ov-title">제품별 진행 상태</div>
-      ${orderRows}
-    </div>`;
+    <div class="ov-card"><div class="ov-title">전체 진행률</div><div class="ov-big">${pct}%</div><div class="ov-sub">완료 ${done}건 / 전체 ${all.length}건 · 총 ${totalPcs.toLocaleString()}장</div><div class="ov-total-bar"><div class="ov-total-fill" style="width:${pct}%"></div></div></div>
+    <div class="ov-card"><div class="ov-title">단계별 현황</div><div class="stage-list">${stageRows}</div></div>
+    <div class="ov-card"><div class="ov-title">제품별 상태</div>${orderRows}</div>`;
 }
 
 // ══════════════════════════════════════════
@@ -789,28 +1045,16 @@ function getAlerts(){
   });
   return r;
 }
-
 function renderAlerts(){
-  const c=document.getElementById('alertsList'), al=getAlerts();
-  if(!al.length){ c.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">알림 없음</div><div class="empty-desc">모든 리오더가 정상 진행 중입니다</div></div>`; return; }
-  c.innerHTML=al.map(a=>`
-    <div class="alert-item ai-${a.type}" onclick="showDetail('${a.id}')">
-      <div class="alert-item-title">${a.title}</div>
-      <div class="alert-item-desc">${a.body}</div>
-    </div>`).join('');
+  const c=document.getElementById('alertsList'),al=getAlerts();
+  if(!al.length){c.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">알림 없음</div></div>`;return;}
+  c.innerHTML=al.map(a=>`<div class="alert-item ai-${a.type}" onclick="showDetail('${a.id}')"><div class="alert-item-title">${a.title}</div><div class="alert-item-desc">${a.body}</div></div>`).join('');
 }
-
 function renderDone(){
   const c=document.getElementById('doneList');
   const list=orders.filter(o=>['warehouse_received','complete'].includes(o.status)).sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if(!list.length){ c.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-title">완료 내역 없음</div></div>`; return; }
-  c.innerHTML=list.map(o=>`
-    <div class="card card-tap" onclick="showDetail('${o.id}')">
-      <div class="oc-head">
-        <div><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div><div class="oc-meta">${fmtDate(o.date)} · 총 ${sumSz(o)}장</div></div>
-        <span class="badge b-green">완료</span>
-      </div>
-    </div>`).join('');
+  if(!list.length){c.innerHTML=`<div class="empty"><div class="empty-ico">📦</div><div class="empty-title">완료 내역 없음</div></div>`;return;}
+  c.innerHTML=list.map(o=>`<div class="card card-tap" onclick="showDetail('${o.id}')"><div class="oc-head"><div><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div><div class="oc-meta">${fmtDate(o.date)} · 총 ${sumSz(o)}장</div></div><span class="badge b-green">완료</span></div></div>`).join('');
 }
 
 // ══════════════════════════════════════════
@@ -819,17 +1063,19 @@ function renderDone(){
 function showDetail(id){
   curOrderId=id;
   const o=orders.find(x=>x.id===id); if(!o) return;
-  // ensure curSeasonId from order
   if(!curSeasonId) curSeasonId=o.seasonId;
   document.getElementById('detailHdrTitle').textContent=`${o.productName} ${o.color}`;
   buildDetail(o);
-  showScreen('detail');
+  rawShow('detail');
+  document.getElementById('ctxHdr').style.display='none';
+  document.getElementById('mainNav').style.display='none';
+  document.getElementById('fab').style.display='none';
 }
 
 function buildDetail(o){
-  const total=sumSz(o), ct=sumCut(o), diff=ct-total;
+  const total=sumSz(o),ct=sumCut(o),diff=ct-total;
   const szHtml=SZ.map(s=>`<div class="szd-item"><span class="szd-lbl">${s}</span><span class="szd-val ${(o.sizes[s]||0)===0?'zero':''}">${o.sizes[s]||0}</span></div>`).join('');
-  const cutHtml=o.cuttingQty?SZ.map(s=>{const v=o.cuttingQty[s]||0,ord=o.sizes[s]||0,d=v-ord; return `<div class="cut-item"><span class="cut-lbl">${s}</span><span class="cut-val">${v}</span>${d!==0?`<span style="font-size:9px;color:${d>0?'#1a7a3c':'#c42020'}">${d>0?'+':''}${d}</span>`:''}</div>`;}).join(''):'';
+  const cutHtml=o.cuttingQty?SZ.map(s=>{const v=o.cuttingQty[s]||0,ord=o.sizes[s]||0,d=v-ord;return `<div class="cut-item"><span class="cut-lbl">${s}</span><span class="cut-val">${v}</span>${d!==0?`<span style="font-size:9px;color:${d>0?'#1a7a3c':'#c42020'}">${d>0?'+':''}${d}</span>`:''}</div>`;}).join(''):'';
   const factoryDone=['factory_received','cutting_done','warehouse_received','complete'].includes(o.status);
   const canCutting=['factory_received','cutting_done','warehouse_received','complete'].includes(o.status);
   const whDone=['warehouse_received','complete'].includes(o.status);
@@ -840,8 +1086,8 @@ function buildDetail(o){
         <span class="badge ${SC[o.status]}" style="font-size:13px;padding:5px 11px">${SL[o.status]}</span>
         <span style="font-size:12px;color:#bbb">${fmtDate(o.date)}</span>
       </div>
-      ${o.partialDelivery&&o.partialUnresolved?`<div class="abanner" style="margin-top:8px"><span class="abanner-ico">⚠️</span><div><div class="abanner-title">부분입고 처리중</div><div class="abanner-body">${o.partialNote||'잔여 원단 입고 대기'}</div></div></div>`:''}
-      ${o.accAlertReq&&!o.accAlertDone?`<div class="abanner pink" style="margin-top:8px"><span class="abanner-ico">🧵</span><div><div class="abanner-title" style="color:#8c1a5a">부자재 추가발주 요청</div><div class="abanner-body" style="color:#a01860">${o.accAlertNote||'공장에서 추가 요청'}</div></div></div>`:''}
+      ${o.partialDelivery&&o.partialUnresolved?`<div class="abanner" style="margin-top:8px"><span class="abanner-ico">⚠️</span><div><div class="abanner-title">부분입고 처리중</div><div class="abanner-body">${o.partialNote||''}</div></div></div>`:''}
+      ${o.accAlertReq&&!o.accAlertDone?`<div class="abanner pink" style="margin-top:8px"><span class="abanner-ico">🧵</span><div><div class="abanner-title" style="color:#8c1a5a">부자재 추가발주 요청</div><div class="abanner-body" style="color:#a01860">${o.accAlertNote||''}</div></div></div>`:''}
     </div>
     <div class="dsec">
       <div class="dsec-title">📏 리오더 수량 <span style="font-size:13px;font-weight:400;color:#bbb">총 ${total}장</span></div>
@@ -873,7 +1119,7 @@ function buildDetail(o){
         <span class="actbtn-ico">✂️</span><div><div class="actbtn-title">재단 수량 입력</div><div class="actbtn-desc">${o.cuttingQty?`총 ${ct}장 재단 ${diff>0?'(+'+diff+'장 초과)':diff<0?'('+diff+'장 부족)':'(예상일치)'}` :'공장에서 재단 후 입력'}</div></div>
         <div class="actbtn-check">${o.cuttingQty?'✓':''}</div>
       </button>
-      ${o.cuttingQty?`<div class="cut-result"><div class="cut-title">✂️ 재단 결과</div><div class="cut-grid">${cutHtml}</div>${diff!==0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}">${diff>0?`+${diff}장 초과 → 부자재 부족 가능성 확인`:`${diff}장 부족 → 추가 발주 검토 필요`}</div>`:''}</div>`:''}
+      ${o.cuttingQty?`<div class="cut-result"><div class="cut-title">✂️ 재단 결과</div><div class="cut-grid">${cutHtml}</div>${diff!==0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}">${diff>0?`+${diff}장 초과 → 부자재 부족 가능성`:`${diff}장 부족 → 추가 발주 검토`}</div>`:''}</div>`:''}
       <button class="actbtn ${o.accAlertReq?(o.accAlertDone?'done':'warn'):''}" onclick="actAccAlert('${o.id}')" ${!['factory_received','cutting_done'].includes(o.status)?'disabled':''}>
         <span class="actbtn-ico">🪡</span><div><div class="actbtn-title">부자재 추가발주 요청</div><div class="actbtn-desc">${o.accAlertReq?(o.accAlertDone?'✓ 처리완료':'⚠ 처리 대기중'):'재단 초과시 추가 발주 요청'}</div></div>
         <div class="actbtn-check" style="${o.accAlertReq&&!o.accAlertDone?'background:#a01860;border-color:#a01860;color:#fff':''}">${o.accAlertReq?(o.accAlertDone?'✓':'!'):''}</div>
@@ -893,7 +1139,7 @@ function buildDetail(o){
     <div style="height:20px"></div>`;
 }
 
-function refreshDetail(){ const o=orders.find(x=>x.id===curOrderId); if(o){ buildDetail(o); } renderStats(); }
+function refreshDetail(){ const o=orders.find(x=>x.id===curOrderId); if(o) buildDetail(o); renderStats(); updateAlertBadge(); }
 
 // ══════════════════════════════════════════
 // ACTIONS
@@ -919,14 +1165,13 @@ function undoFabric(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   o.status='pending'; o.fabricDate=null; save(); refreshDetail();
 }
-
 function actPartial(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   if(o.partialDelivery){
     sheet('부분입고 상태',`<div class="notebox" style="margin-bottom:12px">${o.partialNote||'부분입고 처리됨'}</div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">닫기</button><button class="btn btn-green" onclick="resolvePartial('${id}');closeSheet()">잔여 입고 완료</button></div>`);
     return;
   }
-  sheet('⚠️ 부분입고 처리',`<div class="frow"><label class="flabel">부분입고 메모</label><textarea class="finput" id="sPartNote" placeholder="예: 100yard 중 60yard만 입고. 잔여 40yard 추후 입고 예정"></textarea></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-orange" onclick="confirmPartial('${id}')">부분입고 처리</button></div>`);
+  sheet('⚠️ 부분입고 처리',`<div class="frow"><label class="flabel">부분입고 메모</label><textarea class="finput" id="sPartNote" placeholder="예: 100yard 중 60yard만 입고"></textarea></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-orange" onclick="confirmPartial('${id}')">부분입고 처리</button></div>`);
 }
 function confirmPartial(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
@@ -937,7 +1182,6 @@ function resolvePartial(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   o.partialUnresolved=false; o.status='fabric_ordered'; save(); refreshDetail();
 }
-
 function actFactory(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   if(o.status==='factory_received'){
@@ -951,34 +1195,32 @@ function confirmFactory(id){
   o.status='factory_received'; o.factoryDate=document.getElementById('sFactDate').value; o.partialUnresolved=false;
   save(); closeSheet(); refreshDetail();
 }
-
 function actCutting(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   const active=SZ.filter(s=>(o.sizes[s]||0)>0);
   const fields=active.map(s=>`<div class="cutitem"><span class="cutitem-lbl">${s}</span><span class="cutitem-sub">발주 ${o.sizes[s]}</span><input type="number" class="cutitem-input" id="cut-${s}" value="${o.cuttingQty?(o.cuttingQty[s]||0):(o.sizes[s]||0)}" min="0" oninput="updateDiffMsg('${id}')"></div>`).join('');
-  sheet('✂️ 재단 수량 입력',`<p style="font-size:13px;color:#888;margin-bottom:13px;line-height:1.5">실제 재단한 수량을 입력해주세요.<br>차이 발생시 자동으로 알림이 표시됩니다.</p><div class="cutgrid">${fields}</div><div id="diffMsg" style="margin-bottom:10px"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmCutting('${id}')">저장</button></div>`);
+  sheet('✂️ 재단 수량 입력',`<p style="font-size:13px;color:#888;margin-bottom:13px">실제 재단한 수량을 입력해주세요.</p><div class="cutgrid">${fields}</div><div id="diffMsg" style="margin-bottom:10px"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmCutting('${id}')">저장</button></div>`);
   setTimeout(()=>updateDiffMsg(id),50);
 }
 function updateDiffMsg(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  const total=sumSz(o), cut=SZ.reduce((a,s)=>{const el=document.getElementById('cut-'+s); return a+(el?parseInt(el.value)||0:0);},0), diff=cut-total;
+  const total=sumSz(o),cut=SZ.reduce((a,s)=>{const el=document.getElementById('cut-'+s);return a+(el?parseInt(el.value)||0:0);},0),diff=cut-total;
   const el=document.getElementById('diffMsg'); if(!el) return;
   if(!diff){el.innerHTML='';return;}
-  el.innerHTML=`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-bottom:8px">${diff>0?`+${diff}장 초과 → 부자재 추가 필요 여부 확인하세요`:`${diff}장 부족 → 추가 발주 검토 필요`}</div>`;
+  el.innerHTML=`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-bottom:8px">${diff>0?`+${diff}장 초과 → 부자재 추가 필요 확인`:`${diff}장 부족 → 추가 발주 검토`}</div>`;
 }
 function confirmCutting(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  const cq={}; SZ.forEach(s=>{const el=document.getElementById('cut-'+s); cq[s]=el?parseInt(el.value)||0:0;});
+  const cq={}; SZ.forEach(s=>{const el=document.getElementById('cut-'+s);cq[s]=el?parseInt(el.value)||0:0;});
   o.cuttingQty=cq; o.status='cutting_done'; save(); closeSheet(); refreshDetail();
 }
-
 function actAccAlert(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   if(o.accAlertReq&&!o.accAlertDone){
     sheet('부자재 추가발주 요청',`<div class="notebox" style="background:#fdf0f7;color:#8c1a5a;margin-bottom:12px">${o.accAlertNote||'추가 발주 요청됨'}</div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">닫기</button><button class="btn btn-green" onclick="resolveAccAlert('${id}');closeSheet()">발주 완료 처리</button></div>`);
     return;
   }
-  sheet('🪡 부자재 추가발주 요청',`<p style="font-size:13px;color:#888;margin-bottom:13px;line-height:1.5">재단 후 부자재가 부족한 경우<br>담당자에게 추가 발주를 요청합니다.</p><div class="frow"><label class="flabel">요청 내용</label><textarea class="finput" id="sAccNote" placeholder="예: 단추 50개 추가 발주 필요"></textarea></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-pink" onclick="confirmAccAlert('${id}')">요청 전송</button></div>`);
+  sheet('🪡 부자재 추가발주 요청',`<div class="frow"><label class="flabel">요청 내용</label><textarea class="finput" id="sAccNote" placeholder="예: 단추 50개 추가 발주 필요"></textarea></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-pink" onclick="confirmAccAlert('${id}')">요청 전송</button></div>`);
 }
 function confirmAccAlert(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
@@ -989,7 +1231,6 @@ function resolveAccAlert(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   o.accAlertDone=true; save(); refreshDetail();
 }
-
 function actWarehouse(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   sheet('📦 창고 입고 확인',`<div class="frow"><label class="flabel">입고일</label><input type="date" class="finput" id="sWhDate" value="${today()}"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-green" onclick="confirmWarehouse('${id}')">입고 확인 완료</button></div>`);
@@ -1004,34 +1245,99 @@ function toggleAcc(id){
 }
 
 // ══════════════════════════════════════════
-// NEW ORDER
+// NEW ORDER — 색상별 수량
 // ══════════════════════════════════════════
-function calcTotal(){
-  const t=SZ.reduce((a,s)=>a+(parseInt(document.getElementById('sz-'+s).value)||0),0);
-  document.getElementById('totalDisp').textContent=t;
+function szGridHtml(idx){
+  return `<div class="szgrid">
+    ${SZ.map(s=>`<div class="szitem"><span class="szlbl">${s}</span><input type="number" class="szinput" id="sz-${idx}-${s}" value="0" min="0" oninput="calcAllTotals()"></div>`).join('')}
+    <div class="szitem" style="visibility:hidden"></div>
+    <div class="sztotal">소계 <span id="sub-${idx}">0</span>장</div>
+  </div>`;
+}
+
+function addColor(colorName=''){
+  const idx = colorCount++;
+  const div = document.createElement('div');
+  div.className = 'color-entry';
+  div.id = `color-entry-${idx}`;
+  div.innerHTML = `
+    <div class="color-entry-header">
+      <span class="color-entry-label">색상 ${idx+1}</span>
+      <input type="text" class="color-name-input" id="color-${idx}" placeholder="예: 핑크, 블루" value="${colorName}">
+      <button class="color-remove-btn" onclick="removeColor(${idx})">✕</button>
+    </div>
+    ${szGridHtml(idx)}`;
+  document.getElementById('colorList').appendChild(div);
+}
+
+function removeColor(idx){
+  const el = document.getElementById(`color-entry-${idx}`);
+  if(el) el.remove();
+  calcAllTotals();
+  // 색상 번호 재정렬 표시
+  document.querySelectorAll('.color-entry').forEach((el,i)=>{
+    const lbl = el.querySelector('.color-entry-label');
+    if(lbl) lbl.textContent = `색상 ${i+1}`;
+  });
+}
+
+function calcAllTotals(){
+  let grand = 0;
+  document.querySelectorAll('.color-entry').forEach(entry=>{
+    const idx = entry.id.replace('color-entry-','');
+    const sub = SZ.reduce((a,s)=>{ const el=document.getElementById(`sz-${idx}-${s}`); return a+(el?parseInt(el.value)||0:0); },0);
+    const subEl = document.getElementById(`sub-${idx}`);
+    if(subEl) subEl.textContent = sub;
+    grand += sub;
+  });
+  document.getElementById('totalSummary').textContent = grand>0?`총 ${grand}장`:'';
 }
 
 function goNew(){
+  if(!curSeasonId){ alert('시즌을 먼저 선택해주세요'); return; }
   document.getElementById('nDate').value=today();
-  ['nName','nColor','nFabricCo','nFabricName','nFabricQty','nAccNote','nNotes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  SZ.forEach(s=>{document.getElementById('sz-'+s).value=0;});
-  document.getElementById('totalDisp').textContent='0';
-  showScreen('new');
+  ['nName','nFabricCo','nFabricName','nFabricQty','nAccNote','nNotes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('colorList').innerHTML='';
+  document.getElementById('totalSummary').textContent='';
+  colorCount=0;
+  addColor(); // 기본 색상 1개
+  rawShow('new');
+  document.getElementById('ctxHdr').style.display='none';
+  document.getElementById('mainNav').style.display='none';
+  document.getElementById('fab').style.display='none';
 }
 
 function saveOrder(){
   const name=document.getElementById('nName').value.trim();
-  if(!name){alert('제품명을 입력해주세요');return;}
-  if(!curSeasonId){alert('시즌을 선택해주세요');return;}
-  const sizes={}; SZ.forEach(s=>{sizes[s]=parseInt(document.getElementById('sz-'+s).value)||0;});
-  orders.unshift({
-    id:uid(), seasonId:curSeasonId, date:document.getElementById('nDate').value,
-    productName:name, color:document.getElementById('nColor').value.trim(), sizes,
-    fabricCo:document.getElementById('nFabricCo').value.trim(), fabricName:document.getElementById('nFabricName').value.trim(),
-    fabricQty:parseInt(document.getElementById('nFabricQty').value)||null,
-    accNote:document.getElementById('nAccNote').value.trim(), notes:document.getElementById('nNotes').value.trim(),
-    status:'pending', accOrdered:false
+  if(!name){ alert('제품명을 입력해주세요'); return; }
+  if(!curSeasonId){ alert('시즌을 선택해주세요'); return; }
+
+  const entries = document.querySelectorAll('.color-entry');
+  if(!entries.length){ alert('최소 1개 색상을 입력해주세요'); return; }
+
+  let saved=0;
+  entries.forEach(entry=>{
+    const idx=entry.id.replace('color-entry-','');
+    const colorName=(document.getElementById(`color-${idx}`)?.value||'').trim();
+    const sizes={};
+    SZ.forEach(s=>{ sizes[s]=parseInt(document.getElementById(`sz-${idx}-${s}`)?.value)||0; });
+    const total=Object.values(sizes).reduce((a,b)=>a+b,0);
+    if(!total&&!colorName) return; // 빈 칸은 스킵
+
+    orders.unshift({
+      id:uid(), seasonId:curSeasonId, date:document.getElementById('nDate').value,
+      productName:name, color:colorName||`색상${saved+1}`, sizes,
+      fabricCo:document.getElementById('nFabricCo').value.trim(),
+      fabricName:document.getElementById('nFabricName').value.trim(),
+      fabricQty:parseInt(document.getElementById('nFabricQty').value)||null,
+      accNote:document.getElementById('nAccNote').value.trim(),
+      notes:document.getElementById('nNotes').value.trim(),
+      status:'pending', accOrdered:false
+    });
+    saved++;
   });
+
+  if(!saved){ alert('수량을 입력해주세요'); return; }
   save(); exitToOrders();
 }
 
@@ -1044,20 +1350,10 @@ function deleteOrder(){
 // ══════════════════════════════════════════
 // FACTORY MODE
 // ══════════════════════════════════════════
-function enterFactory(){
-  document.getElementById('factoryBar').style.display='';
-  renderFactory(); showScreen('factory');
-}
-function exitFactory(){
-  document.getElementById('factoryBar').style.display='none';
-  if(curSeasonId){ showScreen('orders'); renderOrders(); renderStats(); }
-  else { navGo('seasons'); }
-}
-
 function renderFactory(){
   const c=document.getElementById('factoryBody');
   const list=orders.filter(o=>['fabric_ordered','partial_delivery','factory_received','cutting_done'].includes(o.status));
-  if(!list.length){ c.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">현재 대기 중인 작업 없음</div></div>`; return; }
+  if(!list.length){c.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">현재 대기 중인 작업 없음</div></div>`;return;}
   c.innerHTML=list.map(o=>{
     const total=sumSz(o);
     const needsReceive=['fabric_ordered','partial_delivery'].includes(o.status);
@@ -1072,7 +1368,7 @@ function renderFactory(){
       actionHtml=`<div class="fcut-section"><div class="fcut-title">✂️ 재단 수량을 입력해 주세요</div><div class="fcut-grid">${cutFields}</div><button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">재단 수량 저장</button></div>`;
     }
     if(hasCut){
-      const ct=sumCut(o), diff=ct-total;
+      const ct=sumCut(o),diff=ct-total;
       const cutDisp=SZ.filter(s=>(o.cuttingQty[s]||0)>0).map(s=>`<div class="fsize-item"><span class="fsize-lbl">${s}</span><span class="fsize-val">${o.cuttingQty[s]}</span></div>`).join('');
       actionHtml=`<div style="background:#edfaf1;border-radius:10px;padding:14px;margin-bottom:10px"><div style="font-size:14px;font-weight:800;color:#1a7a3c;margin-bottom:10px">✓ 재단 완료 — 총 ${ct}장</div><div class="fsizes">${cutDisp}</div>${diff!==0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px">${diff>0?`+${diff}장 초과`:diff+'장 부족'}</div>`:''}</div><button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button>`;
     }
@@ -1087,14 +1383,13 @@ function renderFactory(){
     </div>`;
   }).join('');
 }
-
 function fConfirmReceive(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  o.status='factory_received'; o.factoryDate=today(); o.partialUnresolved=false; save(); renderFactory(); renderStats();
+  o.status='factory_received'; o.factoryDate=today(); o.partialUnresolved=false; save(); renderFactory();
 }
 function fConfirmCutting(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  const cq={}; SZ.forEach(s=>{const el=document.getElementById(`fc-${id}-${s}`); cq[s]=el?parseInt(el.value)||0:0;});
+  const cq={}; SZ.forEach(s=>{const el=document.getElementById(`fc-${id}-${s}`);cq[s]=el?parseInt(el.value)||0:0;});
   o.cuttingQty=cq; o.status='cutting_done';
   const diff=sumCut(o)-sumSz(o); save(); renderFactory();
   if(diff>0) alert(`재단 완료!\n\n⚠️ 발주 수량보다 ${diff}장 많습니다.\n부자재가 부족할 수 있으니\n'부자재 추가 요청하기' 버튼을 눌러주세요.`);
@@ -1106,19 +1401,16 @@ function fReqAccessory(id){
   const note=prompt('추가로 필요한 부자재 내용을 입력해 주세요\n(예: 단추 50개, 지퍼 30개)');
   if(note===null) return;
   o.accAlertReq=true; o.accAlertDone=false; o.accAlertNote=note||'부자재 추가 요청'; save(); renderFactory();
-  alert('✅ 부자재 추가 요청이 전송되었습니다.\n담당자가 확인할 예정입니다.');
+  alert('✅ 부자재 추가 요청이 전송되었습니다.');
 }
 
 // ══════════════════════════════════════════
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
 function exportData(){
-  const data={seasons,orders,exportedAt:new Date().toISOString()};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=`리오더_${today()}.json`; a.click();
-  URL.revokeObjectURL(url);
+  const blob=new Blob([JSON.stringify({seasons,orders,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=`리오더_${today()}.json`; a.click(); URL.revokeObjectURL(url);
 }
 function importData(input){
   const file=input.files[0]; if(!file) return;
@@ -1126,15 +1418,41 @@ function importData(input){
   reader.onload=e=>{
     try{
       const data=JSON.parse(e.target.result);
-      if(!data.seasons||!data.orders){alert('올바른 데이터 파일이 아닙니다');return;}
-      if(!confirm(`데이터를 가져오면 현재 데이터가 덮어씌워집니다.\n시즌 ${data.seasons.length}개, 주문 ${data.orders.length}건\n계속하시겠습니까?`)) return;
+      if(!data.seasons||!data.orders){alert('올바른 파일이 아닙니다');return;}
+      if(!confirm(`시즌 ${data.seasons.length}개, 주문 ${data.orders.length}건\n현재 데이터를 덮어씌우시겠습니까?`)) return;
       seasons=data.seasons; orders=data.orders; save();
-      navGo('seasons'); renderSeasons();
-      alert('데이터를 성공적으로 가져왔습니다.');
-    }catch(err){alert('파일을 읽는 중 오류가 발생했습니다');}
+      navGo('seasons'); renderSeasons(); alert('데이터를 가져왔습니다.');
+    }catch(e){alert('파일 읽기 오류');}
   };
-  reader.readAsText(file);
-  input.value='';
+  reader.readAsText(file); input.value='';
+}
+
+// ══════════════════════════════════════════
+// FIREBASE SYNC
+// ══════════════════════════════════════════
+function setSyncStatus(state){
+  const el=document.getElementById('syncStatus'); if(!el) return;
+  if(state==='syncing') el.textContent='↑ 동기화중...';
+  else if(state==='synced'){ el.textContent='✓ 동기화됨'; setTimeout(()=>{ if(el.textContent==='✓ 동기화됨') el.textContent=''; },2000); }
+  else if(state==='offline') el.textContent='⚠ 오프라인';
+}
+
+function refreshCurrentView(){
+  let activeId=null;
+  document.querySelectorAll('.screen').forEach(s=>{ if(s.classList.contains('on')) activeId=s.id; });
+  if(!activeId||activeId==='screen-new'||activeId==='screen-role') return;
+  updateAlertBadge();
+  switch(activeId){
+    case 'screen-seasons': renderSeasons(); break;
+    case 'screen-orders': renderOrders(); renderStats(); break;
+    case 'screen-designer': renderDesigner(); break;
+    case 'screen-warehouse': renderWarehouse(); break;
+    case 'screen-overview': renderOverview(); break;
+    case 'screen-alerts': renderAlerts(); break;
+    case 'screen-done': renderDone(); break;
+    case 'screen-detail': if(curOrderId){ const o=orders.find(x=>x.id===curOrderId); if(o) buildDetail(o); } break;
+    case 'screen-factory': renderFactory(); break;
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1144,27 +1462,45 @@ function sheet(title,html){ document.getElementById('sheetBody').innerHTML=`<div
 function closeSheet(){ document.getElementById('overlay').classList.remove('on'); }
 
 // ══════════════════════════════════════════
-// INIT + SAMPLE DATA
+// INIT
 // ══════════════════════════════════════════
-load();
+load();        // 로컬 캐시로 즉시 시작
+rawShow('role'); // 캐시 데이터로 바로 역할 선택 화면 표시
 
-if(!seasons.length){
-  const sid1=uid(), sid2=uid();
-  seasons=[
-    {id:sid1,name:'26여름1차',createdAt:'2026-04-01'},
-    {id:sid2,name:'26가을',createdAt:'2026-05-01'}
-  ];
-  const blankSz=Object.fromEntries(SZ.map(s=>[s,0]));
-  orders=[
-    {id:uid(),seasonId:sid1,date:'2026-05-02',productName:'베리씬가디건',color:'핑크',sizes:{...blankSz,XS:10,S:20,M:10,L:10},fabricCo:'동대문원단',fabricName:'스트라이프 니트',fabricQty:120,accNote:'단추 60개',notes:'',status:'fabric_ordered',fabricDate:'2026-05-03',accOrdered:true},
-    {id:uid(),seasonId:sid1,date:'2026-04-28',productName:'코지점프수트',color:'메런지',sizes:{...blankSz,S:10,M:10,L:10,XL:5,JS:5},fabricCo:'나라원단',fabricName:'두꺼운 면혼방',fabricQty:200,accNote:'지퍼 40개, 스냅버튼',notes:'',status:'factory_received',fabricDate:'2026-04-29',factoryDate:'2026-05-01',accOrdered:false},
-    {id:uid(),seasonId:sid1,date:'2026-04-25',productName:'메이프릴레깅스',color:'브라운',sizes:{...blankSz,S:30,M:30,L:15,XL:15,JS:15},fabricCo:'한국원단',fabricName:'스판 레깅스',fabricQty:350,accNote:'허리밴드 110개',notes:'',status:'cutting_done',fabricDate:'2026-04-26',factoryDate:'2026-04-30',cuttingQty:{...blankSz,S:32,M:31,L:15,XL:15,JS:16},accOrdered:true},
-    {id:uid(),seasonId:sid2,date:'2026-05-05',productName:'보드레오나시',color:'아이',sizes:{...blankSz,S:30,M:30,L:15,XL:15,JS:15},fabricCo:'',fabricName:'',fabricQty:null,accNote:'',notes:'',status:'pending',accOrdered:false}
-  ];
-  save();
-}
+// Firebase 실시간 동기화
+let fbReady = false;
+dbRef.on('value', snapshot => {
+  const data = snapshot.val();
 
-renderSeasons();
+  if(data && (data.seasons || data.orders)){
+    // Firebase 데이터 → 배열로 변환 (최신순 정렬)
+    seasons = data.seasons ? Object.values(data.seasons).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)) : [];
+    orders  = data.orders  ? Object.values(data.orders).sort((a,b)=>new Date(b.date)-new Date(a.date)) : [];
+    localStorage.setItem('jj_seasons', JSON.stringify(seasons));
+    localStorage.setItem('jj_orders',  JSON.stringify(orders));
+  } else if(!fbReady && !seasons.length){
+    // 첫 실행, 아무 데이터 없음 — 샘플 데이터 초기화
+    const sid1=uid(), sid2=uid();
+    const bSz=Object.fromEntries(SZ.map(s=>[s,0]));
+    seasons=[{id:sid1,name:'26여름1차',createdAt:'2026-04-01'},{id:sid2,name:'26가을',createdAt:'2026-05-01'}];
+    orders=[
+      {id:uid(),seasonId:sid1,date:'2026-05-02',productName:'베리씬가디건',color:'핑크',sizes:{...bSz,XS:10,S:20,M:10,L:10},fabricCo:'동대문원단',fabricName:'스트라이프 니트',fabricQty:120,accNote:'단추 60개',notes:'',status:'fabric_ordered',fabricDate:'2026-05-03',accOrdered:true},
+      {id:uid(),seasonId:sid1,date:'2026-05-02',productName:'베리씬가디건',color:'블루',sizes:{...bSz,XS:5,S:15,M:10,L:5},fabricCo:'동대문원단',fabricName:'스트라이프 니트',fabricQty:60,accNote:'단추 35개',notes:'',status:'fabric_ordered',fabricDate:'2026-05-03',accOrdered:true},
+      {id:uid(),seasonId:sid1,date:'2026-04-28',productName:'코지점프수트',color:'메런지',sizes:{...bSz,S:10,M:10,L:10,XL:5,JS:5},fabricCo:'나라원단',fabricName:'두꺼운 면혼방',fabricQty:200,accNote:'지퍼 40개',notes:'',status:'factory_received',fabricDate:'2026-04-29',factoryDate:'2026-05-01',accOrdered:false},
+      {id:uid(),seasonId:sid2,date:'2026-05-05',productName:'보드레오나시',color:'아이',sizes:{...bSz,S:30,M:30,L:15,XL:15,JS:15},fabricCo:'',fabricName:'',fabricQty:null,accNote:'',notes:'',status:'pending',accOrdered:false}
+    ];
+    save();
+  }
+
+  fbReady = true;
+  setSyncStatus('synced');
+  refreshCurrentView();
+
+}, err => {
+  console.warn('Firebase 연결 오류, 로컬 캐시 사용:', err.message);
+  setSyncStatus('offline');
+  fbReady = true;
+});
 </script>
 </body>
 </html>
