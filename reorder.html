@@ -318,6 +318,24 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600}
 .ch-gray{background:#f0f0f0;color:#555}
 .ch-green{background:#edfaf1;color:#1a7a3c}
+
+/* PHOTO */
+.photo-upload-btn{display:block;width:100%;padding:14px;border:2px dashed #ddd;border-radius:10px;text-align:center;cursor:pointer;color:#aaa;font-size:14px;font-weight:600;background:#fafafa;-webkit-tap-highlight-color:transparent}
+.photo-upload-btn:active{background:#f0f0f0}
+.photo-preview{width:100%;border-radius:8px;object-fit:cover;max-height:180px;margin-bottom:8px;display:block}
+.factory-photo{width:100%;border-radius:10px;object-fit:cover;max-height:220px;margin-bottom:14px;display:block}
+
+/* CATALOG */
+.cat-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:14px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.cat-thumb{width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:24px}
+.cat-info{flex:1;min-width:0}
+.cat-name{font-size:15px;font-weight:800;margin-bottom:6px}
+.color-chips{display:flex;flex-wrap:wrap;gap:4px}
+.color-chip{font-size:11px;font-weight:600;padding:3px 8px;border-radius:12px;background:#f0f0f0;color:#555;display:inline-flex;align-items:center;gap:4px}
+.color-chip-rm{background:none;border:none;font-size:12px;color:#aaa;cursor:pointer;padding:0;line-height:1}
+.add-color-tag-row{display:flex;gap:6px;margin-top:8px}
+.add-color-tag-input{flex:1;border:1px solid #e5e5e5;border-radius:8px;padding:8px 10px;font-size:14px;outline:none;-webkit-appearance:none}
+.add-color-tag-btn{background:#111;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer;font-weight:700;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -360,9 +378,10 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <div class="hdr-logo">리오더 관리</div>
     <div id="roleTag"></div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center">
+  <div style="display:flex;gap:6px;align-items:center">
     <span id="syncStatus" style="font-size:11px;color:#aaa"></span>
-    <button class="btn btn-ghost btn-sm" onclick="goShare()" style="width:auto">📤 공유</button>
+    <button class="btn btn-ghost btn-sm" onclick="changeRole()" style="width:auto;font-size:12px">역할변경</button>
+    <button class="btn btn-ghost btn-sm" onclick="goShare()" style="width:auto;font-size:18px;padding:6px 10px">📤</button>
   </div>
 </div>
 
@@ -375,6 +394,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   <div class="ctx-subtabs">
     <div class="ctx-subtab on" id="stab-orders" onclick="setSubTab('orders')">주문</div>
     <div class="ctx-subtab" id="stab-overview" onclick="setSubTab('overview')">현황</div>
+    <div class="ctx-subtab" id="stab-catalog" onclick="setSubTab('catalog')">상품</div>
   </div>
 </div>
 
@@ -385,13 +405,9 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   <div class="nav-item" id="nav2" onclick="navGo('done')"><span class="nav-icon">📦</span><span class="nav-lbl">완료</span></div>
 </div>
 
-<!-- ROLE INDICATOR (하단 고정) -->
+<!-- ROLE INDICATOR (역할명만 표시, 변경은 헤더 버튼 사용) -->
 <div class="role-indicator" id="roleIndicator" style="display:none">
-  <div>
-    <div class="role-indicator-name" id="roleIndicatorName"></div>
-    <div class="role-indicator-sub">역할 선택됨</div>
-  </div>
-  <button class="change-role-btn" onclick="changeRole()">역할 변경</button>
+  <div class="role-indicator-name" id="roleIndicatorName"></div>
 </div>
 
 <!-- FAB -->
@@ -436,6 +452,13 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 <div class="screen" id="screen-overview">
   <div class="main" style="padding-top:14px">
     <div id="overviewBody"></div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: 시즌 카탈로그 ═══ -->
+<div class="screen" id="screen-catalog">
+  <div class="main" style="padding-top:14px">
+    <div id="catalogBody"></div>
   </div>
 </div>
 
@@ -521,11 +544,11 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     </div>
 
     <div class="fsec">
-      <div class="fsec-title">원단 정보</div>
-      <div class="frow"><label class="flabel">원단 상호명</label><input type="text" class="finput" id="nFabricCo" placeholder="원단 거래처명"></div>
-      <div class="frow"><label class="flabel">원단명</label><input type="text" class="finput" id="nFabricName" placeholder="원단 이름"></div>
-      <div class="frow"><label class="flabel">발주 수량 (yard)</label><input type="number" class="finput" id="nFabricQty" placeholder="0" min="0"></div>
+      <div class="fsec-title">상품 사진 <span style="font-size:11px;color:#aaa;font-weight:400">(공장 확인용 · 선택)</span></div>
+      <div id="newPhotoPreview"></div>
+      <label class="photo-upload-btn">📷 사진 추가<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleNewPhoto(this)"></label>
     </div>
+    <div class="notebox" style="margin-bottom:10px">🧵 원단 상호·원단명·야드수는 <b>디자이너</b>가 원단 발주 처리 시 입력합니다.</div>
     <div class="fsec">
       <div class="fsec-title">부자재</div>
       <div class="frow"><label class="flabel">부자재 내용</label><textarea class="finput" id="nAccNote" placeholder="종류 및 수량 메모 (예: 단추 60개, 지퍼 30개)"></textarea></div>
@@ -584,8 +607,10 @@ const ROLE_INFO = {
   factory:{name:'공장사장님',tag:'',          icon:'🏭'}
 };
 
-let seasons=[], orders=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders';
+let seasons=[], orders=[], products=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders';
 let colorCount = 0;
+let pendingNewPhoto = null, pendingEditPhoto = null, pendingProductPhoto = null;
+let productColors = [];
 
 // ── Firebase ──
 const firebaseConfig = {
@@ -604,15 +629,18 @@ const dbRef = db.ref('jj');
 function load(){
   seasons=JSON.parse(localStorage.getItem('jj_seasons')||'[]');
   orders=JSON.parse(localStorage.getItem('jj_orders')||'[]');
+  products=JSON.parse(localStorage.getItem('jj_products')||'[]');
 }
 function save(){
   localStorage.setItem('jj_seasons',JSON.stringify(seasons));
   localStorage.setItem('jj_orders',JSON.stringify(orders));
-  const sObj={},oObj={};
+  localStorage.setItem('jj_products',JSON.stringify(products));
+  const sObj={},oObj={},pObj={};
   seasons.forEach(s=>sObj[s.id]=s);
   orders.forEach(o=>oObj[o.id]=o);
+  products.forEach(p=>pObj[p.id]=p);
   setSyncStatus('syncing');
-  dbRef.set({seasons:sObj,orders:oObj})
+  dbRef.set({seasons:sObj,orders:oObj,products:pObj})
     .then(()=>setSyncStatus('synced'))
     .catch(()=>setSyncStatus('offline'));
 }
@@ -644,10 +672,8 @@ function selectRole(role){
     return;
   }
 
-  // 역할 표시바
+  // 역할 정보
   const ri = ROLE_INFO[role];
-  document.getElementById('roleIndicatorName').textContent = ri.icon + ' ' + ri.name;
-  document.getElementById('roleIndicator').style.display='flex';
 
   // 헤더 role tag
   const tagEl = document.getElementById('roleTag');
@@ -693,7 +719,7 @@ function exitFactory(){
 // ══════════════════════════════════════════
 const NAV_IDX = {seasons:0,alerts:1,done:2};
 const OWN_SCREENS = ['role','share','new','detail','factory','designer','warehouse'];
-const CTX_SCREENS = ['orders','overview'];
+const CTX_SCREENS = ['orders','overview','catalog'];
 
 function rawShow(name){
   document.querySelectorAll('.screen').forEach(s=>{ s.style.display='none'; s.classList.remove('on'); });
@@ -729,6 +755,7 @@ function setSubTab(tab){
   document.getElementById('stab-'+tab).classList.add('on');
   if(tab==='orders'){ rawShow('orders'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display=curRole!=='warehouse'?'':'none'; renderOrders(); }
   else if(tab==='overview'){ rawShow('overview'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display='none'; renderOverview(); }
+  else if(tab==='catalog'){ rawShow('catalog'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display='none'; renderCatalog(); }
 }
 
 function exitSeason(){
@@ -764,6 +791,7 @@ function renderSeasons(){
         <div class="season-prog-bar"><div class="season-prog-fill" style="width:${pct}%"></div></div>
         <div class="season-prog-label">완료 ${done}건 (${pct}%)</div>
       </div>
+      ${canAdd?`<button onclick="event.stopPropagation();openRenameSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#bbb;cursor:pointer;flex-shrink:0" title="시즌명 수정">✏️</button>`:''}
       <div class="season-arrow">›</div>
     </div>`;
   }).join('');
@@ -782,6 +810,20 @@ function confirmNewSeason(){
   if(!name){alert('시즌 이름을 입력해주세요');return;}
   seasons.unshift({id:uid(),name,createdAt:today()});
   save(); closeSheet(); renderSeasons();
+}
+function openRenameSeason(id){
+  const s=seasons.find(x=>x.id===id); if(!s) return;
+  sheet('✏️ 시즌 이름 수정',`
+    <div class="frow"><label class="flabel">시즌 이름</label><input type="text" class="finput" id="sSeasonRename" value="${s.name}" placeholder="예: 26여름1차, 26가을"></div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmRenameSeason('${id}')">저장</button></div>`);
+  setTimeout(()=>document.getElementById('sSeasonRename')?.focus(),100);
+}
+function confirmRenameSeason(id){
+  const s=seasons.find(x=>x.id===id); if(!s) return;
+  const name=document.getElementById('sSeasonRename').value.trim();
+  if(!name){alert('시즌 이름을 입력해주세요');return;}
+  s.name=name; save(); closeSheet(); renderSeasons();
+  if(curSeasonId===id) document.getElementById('ctxSeasonName').textContent=name;
 }
 
 function enterSeason(sid){
@@ -972,8 +1014,11 @@ function orderCard(o){
   const total=sumSz(o),tags=getTags(o),steps=getSteps(o);
   return `<div class="card card-tap" onclick="showDetail('${o.id}')">
     <div class="oc-head">
-      <div><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div><div class="oc-meta">${fmtDate(o.date)} · 총 ${total}장</div></div>
-      <span class="badge ${SC[o.status]}">${SL[o.status]}</span>
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        ${o.photo?`<img src="${o.photo}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;flex-shrink:0">`:''}
+        <div style="min-width:0"><div class="oc-name">${o.productName} <span style="color:#bbb;font-weight:400">${o.color}</span></div><div class="oc-meta">${fmtDate(o.date)} · 총 ${total}장</div></div>
+      </div>
+      <span class="badge ${SC[o.status]}" style="flex-shrink:0;margin-left:8px">${SL[o.status]}</span>
     </div>
     ${tags.length?`<div class="tags">${tags.map(t=>`<span class="tag ${t.c}">${t.l}</span>`).join('')}</div>`:''}
     <div class="pipe">${steps.map(s=>`<div class="pipe-step ${s.st}"><div class="pipe-dot"></div><div class="pipe-lbl">${s.l}</div></div>`).join('')}</div>
@@ -1081,10 +1126,14 @@ function buildDetail(o){
   const whDone=['warehouse_received','complete'].includes(o.status);
 
   document.getElementById('detailBody').innerHTML=`
+    ${o.photo?`<img src="${o.photo}" style="width:100%;border-radius:12px;object-fit:cover;max-height:220px;margin-bottom:10px;display:block">`:''}
     <div class="dsec">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span class="badge ${SC[o.status]}" style="font-size:13px;padding:5px 11px">${SL[o.status]}</span>
-        <span style="font-size:12px;color:#bbb">${fmtDate(o.date)}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:#bbb">${fmtDate(o.date)}</span>
+          <button class="btn btn-ghost btn-sm" onclick="editOrder('${o.id}')" style="width:auto;font-size:12px;padding:5px 10px">✏️ 편집</button>
+        </div>
       </div>
       ${o.partialDelivery&&o.partialUnresolved?`<div class="abanner" style="margin-top:8px"><span class="abanner-ico">⚠️</span><div><div class="abanner-title">부분입고 처리중</div><div class="abanner-body">${o.partialNote||''}</div></div></div>`:''}
       ${o.accAlertReq&&!o.accAlertDone?`<div class="abanner pink" style="margin-top:8px"><span class="abanner-ico">🧵</span><div><div class="abanner-title" style="color:#8c1a5a">부자재 추가발주 요청</div><div class="abanner-body" style="color:#a01860">${o.accAlertNote||''}</div></div></div>`:''}
@@ -1141,6 +1190,40 @@ function buildDetail(o){
 
 function refreshDetail(){ const o=orders.find(x=>x.id===curOrderId); if(o) buildDetail(o); renderStats(); updateAlertBadge(); }
 
+function editOrder(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  pendingEditPhoto=null;
+  const szFields=SZ.map(s=>`<div class="szitem"><span class="szlbl">${s}</span><input type="number" class="szinput" id="esz-${s}" value="${o.sizes[s]||0}" min="0" style="font-size:16px;padding:8px 2px"></div>`).join('');
+  const photoHtml=o.photo?'<img class="photo-preview" src="'+o.photo+'">' :'';
+  sheet('✏️ 주문 편집',`
+    <div class="frow"><label class="flabel">날짜</label><input type="date" class="finput" id="eDate" value="${o.date||''}"></div>
+    <div class="frow"><label class="flabel">제품명</label><input type="text" class="finput" id="eName" value="${o.productName||''}"></div>
+    <div class="frow"><label class="flabel">색상</label><input type="text" class="finput" id="eColor" value="${o.color||''}"></div>
+    <div class="frow"><label class="flabel">수량</label><div class="szgrid">${szFields}</div></div>
+    <div class="frow"><label class="flabel">상품 사진</label>
+      <div id="editPhotoPreview">${photoHtml}</div>
+      <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 ${o.photo?'사진 변경':'사진 추가'}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleEditPhoto(this)"></label>
+    </div>
+    <div class="frow"><label class="flabel">부자재 메모</label><textarea class="finput" id="eAccNote">${o.accNote||''}</textarea></div>
+    <div class="frow"><label class="flabel">비고</label><textarea class="finput" id="eNotes">${o.notes||''}</textarea></div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="saveEditOrder('${id}')">저장</button></div>`);
+}
+function saveEditOrder(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  const name=document.getElementById('eName').value.trim();
+  if(!name){alert('제품명을 입력해주세요');return;}
+  o.date=document.getElementById('eDate').value;
+  o.productName=name;
+  o.color=document.getElementById('eColor').value.trim();
+  const sizes={}; SZ.forEach(s=>{ sizes[s]=parseInt(document.getElementById(`esz-${s}`)?.value)||0; }); o.sizes=sizes;
+  if(pendingEditPhoto){ o.photo=pendingEditPhoto; pendingEditPhoto=null; }
+  o.accNote=document.getElementById('eAccNote').value.trim();
+  o.notes=document.getElementById('eNotes').value.trim();
+  save(); closeSheet();
+  document.getElementById('detailHdrTitle').textContent=`${o.productName} ${o.color}`;
+  buildDetail(o); renderStats();
+}
+
 // ══════════════════════════════════════════
 // ACTIONS
 // ══════════════════════════════════════════
@@ -1152,12 +1235,16 @@ function actFabric(id){
   }
   sheet('🧵 원단 발주 처리',`
     <div class="frow"><label class="flabel">발주일</label><input type="date" class="finput" id="sFabDate" value="${today()}"></div>
+    <div class="frow"><label class="flabel">원단 상호명</label><input type="text" class="finput" id="sFabCo" value="${o.fabricCo||''}" placeholder="원단 거래처명"></div>
+    <div class="frow"><label class="flabel">원단명</label><input type="text" class="finput" id="sFabName" value="${o.fabricName||''}" placeholder="원단 이름"></div>
     <div class="frow"><label class="flabel">발주 수량 (yard)</label><input type="number" class="finput" id="sFabQty" value="${o.fabricQty||''}" placeholder="0"></div>
     <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmFabric('${id}')">발주 완료 처리</button></div>`);
 }
 function confirmFabric(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
   o.status='fabric_ordered'; o.fabricDate=document.getElementById('sFabDate').value;
+  const co=document.getElementById('sFabCo').value.trim(); if(co) o.fabricCo=co;
+  const nm=document.getElementById('sFabName').value.trim(); if(nm) o.fabricName=nm;
   const q=document.getElementById('sFabQty').value; if(q) o.fabricQty=parseInt(q);
   save(); closeSheet(); refreshDetail();
 }
@@ -1296,11 +1383,12 @@ function calcAllTotals(){
 function goNew(){
   if(!curSeasonId){ alert('시즌을 먼저 선택해주세요'); return; }
   document.getElementById('nDate').value=today();
-  ['nName','nFabricCo','nFabricName','nFabricQty','nAccNote','nNotes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['nName','nAccNote','nNotes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('colorList').innerHTML='';
   document.getElementById('totalSummary').textContent='';
-  colorCount=0;
-  addColor(); // 기본 색상 1개
+  colorCount=0; pendingNewPhoto=null;
+  const pp=document.getElementById('newPhotoPreview'); if(pp) pp.innerHTML='';
+  addColor();
   rawShow('new');
   document.getElementById('ctxHdr').style.display='none';
   document.getElementById('mainNav').style.display='none';
@@ -1327,24 +1415,61 @@ function saveOrder(){
     orders.unshift({
       id:uid(), seasonId:curSeasonId, date:document.getElementById('nDate').value,
       productName:name, color:colorName||`색상${saved+1}`, sizes,
-      fabricCo:document.getElementById('nFabricCo').value.trim(),
-      fabricName:document.getElementById('nFabricName').value.trim(),
-      fabricQty:parseInt(document.getElementById('nFabricQty').value)||null,
+      fabricCo:'', fabricName:'', fabricQty:null,
       accNote:document.getElementById('nAccNote').value.trim(),
       notes:document.getElementById('nNotes').value.trim(),
+      photo:pendingNewPhoto||null,
       status:'pending', accOrdered:false
     });
     saved++;
   });
 
   if(!saved){ alert('수량을 입력해주세요'); return; }
+  pendingNewPhoto=null;
   save(); exitToOrders();
 }
 
 function deleteOrder(){
   if(!curOrderId) return;
   if(!confirm('이 리오더를 삭제하시겠습니까?')) return;
+  closeSheet();
   orders=orders.filter(o=>o.id!==curOrderId); save(); exitToOrders();
+}
+
+// ══════════════════════════════════════════
+// PHOTO
+// ══════════════════════════════════════════
+function resizeImage(file,cb){
+  const r=new FileReader();
+  r.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=700,canvas=document.createElement('canvas');
+      let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      cb(canvas.toDataURL('image/jpeg',.78));
+    };
+    img.src=e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+function handleNewPhoto(input){
+  const file=input.files[0]; if(!file) return;
+  resizeImage(file,url=>{
+    pendingNewPhoto=url;
+    const p=document.getElementById('newPhotoPreview');
+    if(p) p.innerHTML=`<img class="photo-preview" src="${url}">`;
+  });
+}
+function handleEditPhoto(input){
+  const file=input.files[0]; if(!file) return;
+  resizeImage(file,url=>{
+    pendingEditPhoto=url;
+    const p=document.getElementById('editPhotoPreview');
+    if(p) p.innerHTML=`<img class="photo-preview" src="${url}">`;
+  });
 }
 
 // ══════════════════════════════════════════
@@ -1373,10 +1498,15 @@ function renderFactory(){
       actionHtml=`<div style="background:#edfaf1;border-radius:10px;padding:14px;margin-bottom:10px"><div style="font-size:14px;font-weight:800;color:#1a7a3c;margin-bottom:10px">✓ 재단 완료 — 총 ${ct}장</div><div class="fsizes">${cutDisp}</div>${diff!==0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px">${diff>0?`+${diff}장 초과`:diff+'장 부족'}</div>`:''}</div><button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button>`;
     }
     const s=seasons.find(x=>x.id===o.seasonId);
+    const catalogProd=products.find(p=>p.seasonId===o.seasonId&&p.name===o.productName);
+    const photoToShow=o.photo||(catalogProd?.photo)||null;
+    const allColors=catalogProd?.colors||[];
     return `<div class="fcard ${needsReceive||needsCutting?'needs':''}">
+      ${photoToShow?`<img class="factory-photo" src="${photoToShow}">`:''}
       ${s?`<div style="font-size:11px;color:#aaa;margin-bottom:4px;font-weight:600">📁 ${s.name}</div>`:''}
       <div class="fprod">${o.productName}</div>
       <div class="fmeta">${o.color} · 총 ${total}장 · ${fmtDate(o.date)}</div>
+      ${allColors.length?`<div style="margin-bottom:12px"><div style="font-size:11px;color:#aaa;font-weight:600;margin-bottom:5px">전체 색상</div><div class="color-chips">${allColors.map(c=>`<span class="color-chip">${c}</span>`).join('')}</div></div>`:''}
       ${o.fabricCo?`<div style="font-size:13px;color:#888;margin-bottom:14px">원단: ${o.fabricCo} ${o.fabricName||''}</div>`:''}
       <div class="fsizes">${szHtml}</div>
       ${actionHtml}
@@ -1405,10 +1535,183 @@ function fReqAccessory(id){
 }
 
 // ══════════════════════════════════════════
+// CATALOG
+// ══════════════════════════════════════════
+function renderCatalog(){
+  const c=document.getElementById('catalogBody');
+  if(!curSeasonId){c.innerHTML='';return;}
+  const seasonProds=products.filter(p=>p.seasonId===curSeasonId);
+  const canEdit=curRole==='store'||curRole==='designer';
+  let html=canEdit?`<button class="add-season-btn" onclick="openNewProduct()" style="margin-bottom:12px">+ 상품 추가</button>`:'';
+  if(!seasonProds.length){
+    html+=`<div class="empty"><div class="empty-ico">👗</div><div class="empty-title">등록된 상품 없음</div><div class="empty-desc">시즌 상품과 색상을 등록해두면<br>공장에서 확인할 수 있습니다</div></div>`;
+    c.innerHTML=html; return;
+  }
+  html+=seasonProds.map(p=>{
+    const chips=p.colors.map(col=>`<span class="color-chip">${col}</span>`).join('');
+    const photoHtml=p.photo?`<img src="${p.photo}" style="width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0">`:`<div class="cat-thumb">👗</div>`;
+    return `<div class="cat-card">
+      ${photoHtml}
+      <div class="cat-info">
+        <div class="cat-name">${p.name}</div>
+        <div class="color-chips" style="margin-top:4px">${chips||'<span style="font-size:12px;color:#bbb">색상 미등록</span>'}</div>
+      </div>
+      ${canEdit?`<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:6px">
+        <button onclick="editProduct('${p.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px">✏️</button>
+        <button onclick="deleteProduct('${p.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px">🗑️</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+  c.innerHTML=html;
+}
+
+function openNewProduct(){
+  if(!curSeasonId){alert('시즌을 먼저 선택해주세요');return;}
+  pendingProductPhoto=null; productColors=[];
+  sheet('+ 상품 추가',`
+    <div class="frow"><label class="flabel">상품명</label><input type="text" class="finput" id="pName" placeholder="예: 베리씬가디건"></div>
+    <div class="frow"><label class="flabel">상품 사진 <span style="color:#aaa;font-weight:400;font-size:11px">(선택 · 확인용)</span></label>
+      <div id="prodPhotoPreview"></div>
+      <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 사진 추가<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleProductPhoto(this)"></label>
+    </div>
+    <div class="frow"><label class="flabel">색상</label>
+      <div class="color-chips" id="prodColorChips" style="min-height:24px;margin-bottom:4px"></div>
+      <div class="add-color-tag-row">
+        <input type="text" class="add-color-tag-input" id="prodColorInput" placeholder="색상 입력 (예: 핑크)" onkeydown="if(event.key==='Enter'){event.preventDefault();addColorTag();}">
+        <button class="add-color-tag-btn" onclick="addColorTag()">추가</button>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:6px"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="saveNewProduct()">저장</button></div>`);
+  setTimeout(()=>document.getElementById('pName')?.focus(),100);
+}
+
+function saveNewProduct(){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){alert('상품명을 입력해주세요');return;}
+  products.push({id:uid(),seasonId:curSeasonId,name,photo:pendingProductPhoto||null,colors:[...productColors]});
+  pendingProductPhoto=null; productColors=[];
+  save(); closeSheet(); renderCatalog();
+}
+
+function editProduct(id){
+  const p=products.find(x=>x.id===id); if(!p) return;
+  pendingProductPhoto=null; productColors=[...p.colors];
+  const photoHtml=p.photo?`<img class="photo-preview" src="${p.photo}">`:'';
+  sheet('✏️ 상품 편집',`
+    <div class="frow"><label class="flabel">상품명</label><input type="text" class="finput" id="pEditName" value="${p.name}"></div>
+    <div class="frow"><label class="flabel">상품 사진</label>
+      <div id="prodPhotoPreview">${photoHtml}</div>
+      <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 ${p.photo?'사진 변경':'사진 추가'}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleProductPhoto(this)"></label>
+    </div>
+    <div class="frow"><label class="flabel">색상</label>
+      <div class="color-chips" id="prodColorChips" style="min-height:24px;margin-bottom:4px">${renderColorChipsHtml()}</div>
+      <div class="add-color-tag-row">
+        <input type="text" class="add-color-tag-input" id="prodColorInput" placeholder="색상 입력 (예: 핑크)" onkeydown="if(event.key==='Enter'){event.preventDefault();addColorTag();}">
+        <button class="add-color-tag-btn" onclick="addColorTag()">추가</button>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:6px"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="saveEditProduct('${id}')">저장</button></div>`);
+}
+
+function saveEditProduct(id){
+  const p=products.find(x=>x.id===id); if(!p) return;
+  const name=document.getElementById('pEditName').value.trim();
+  if(!name){alert('상품명을 입력해주세요');return;}
+  p.name=name; p.colors=[...productColors];
+  if(pendingProductPhoto){p.photo=pendingProductPhoto;pendingProductPhoto=null;}
+  save(); closeSheet(); renderCatalog();
+}
+
+function deleteProduct(id){
+  if(!confirm('이 상품을 카탈로그에서 삭제하시겠습니까?')) return;
+  products=products.filter(p=>p.id!==id);
+  save(); renderCatalog();
+}
+
+function handleProductPhoto(input){
+  const file=input.files[0]; if(!file) return;
+  resizeImage(file,url=>{
+    pendingProductPhoto=url;
+    const p=document.getElementById('prodPhotoPreview');
+    if(p) p.innerHTML=`<img class="photo-preview" src="${url}">`;
+  });
+}
+
+function addColorTag(){
+  const input=document.getElementById('prodColorInput');
+  const val=input.value.trim();
+  if(!val) return;
+  if(!productColors.includes(val)) productColors.push(val);
+  input.value='';
+  const chips=document.getElementById('prodColorChips');
+  if(chips) chips.innerHTML=renderColorChipsHtml();
+}
+
+function removeColorTag(idx){
+  productColors.splice(idx,1);
+  const chips=document.getElementById('prodColorChips');
+  if(chips) chips.innerHTML=renderColorChipsHtml();
+}
+
+function renderColorChipsHtml(){
+  return productColors.map((c,i)=>`<span class="color-chip">${c}<button class="color-chip-rm" onclick="removeColorTag(${i})">✕</button></span>`).join('');
+}
+
+function getDefault26Products(seasonId){
+  const items=[
+    {name:'서프윈드브레이커',colors:['그레이','크림']},
+    {name:'베리씬가디건',colors:['아이보리','옐로우','핑크']},
+    {name:'하프스프링가디건',colors:['스카이블루','네이비','브라운']},
+    {name:'써머와이드맨투맨',colors:['핑크','그린','블루']},
+    {name:'쥬크박스티',colors:['브라운','옐로우','바이올렛']},
+    {name:'YG랍빠티',colors:['그린','옐로우']},
+    {name:'폴라포켓티',colors:['바이올렛']},
+    {name:'랍빠프리티',colors:['핑크','그린']},
+    {name:'네스티',colors:['올리브','네이비']},
+    {name:'스위티',colors:['멜란지','차콜','스카이블루']},
+    {name:'레드블루티',colors:['레드','블루']},
+    {name:'그램플로티',colors:['멜란지','아이보리']},
+    {name:'타이티',colors:['그린','블랙','네이비']},
+    {name:'파리업티',colors:['블루','바이올렛']},
+    {name:'레드블루팬츠',colors:['레드','블루']},
+    {name:'그램플팬츠',colors:['멜란지','아이보리']},
+    {name:'스테레오나시',colors:['핑크','블랙','그린']},
+    {name:'보드레오나시',colors:['아이보리','멜란지','핑크','스카이블루','옐로우']},
+    {name:'엑스플로나시',colors:['스카이블루','멜란지','브라운']},
+    {name:'프렌즈나시',colors:['바이올렛','블루','블랙','브라운']},
+    {name:'바이오팬츠',colors:['그레이','차콜','베이지']},
+    {name:'마운틴팬츠',colors:['그린','브라운','카키','블루']},
+    {name:'와차팬츠',colors:['와인','차콜']},
+    {name:'코스트팬츠',colors:['퍼플','민트','그린']},
+    {name:'하프트랙팬츠',colors:['그린','옐로우','네이비','브라운']},
+    {name:'BIG팬츠',colors:['블루','아이보리','그린']},
+    {name:'반카롱팬츠',colors:['멜란지','핑크','스카이블루']},
+    {name:'앤돌핀팬츠',colors:['블루','핑크']},
+    {name:'원피수트',colors:['그린','스카이블루','핑크']},
+    {name:'투인원피스',colors:['체크']},
+    {name:'젠스커트',colors:['민트','핑크']},
+    {name:'파인체크블루머',colors:['그린','바이올렛','네이비','레드','브라운']},
+    {name:'메이프릴레깅스',colors:['브라운','스카이블루','멜란지']},
+    {name:'플랫시머레깅스',colors:['플라워','핑크','차콜']},
+    {name:'코지점프수트',colors:['네이비','멜란지']},
+    {name:'우노레인오버롤',colors:['핑크','베이지']},
+    {name:'르메르오버롤',colors:['퍼플','핑크']},
+    {name:'래빗오버롤',colors:['베이지','그린']},
+    {name:'바비오버롤',colors:['체크']},
+    {name:'아미오버롤',colors:['카키','데님']},
+    {name:'코튼베리숏오버롤',colors:['옐로우','차콜','민트','브릭']},
+    {name:'제제빙크스',colors:['블랙','핑크']},
+    {name:'에프캡',colors:['브라운','퍼플','베이지']},
+    {name:'제제클립',colors:['옐로우','차콜','민트','브릭']}
+  ];
+  return items.map(item=>({id:uid(),seasonId,name:item.name,photo:null,colors:item.colors}));
+}
+
+// ══════════════════════════════════════════
 // EXPORT / IMPORT
 // ══════════════════════════════════════════
 function exportData(){
-  const blob=new Blob([JSON.stringify({seasons,orders,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({seasons,orders,products,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob); const a=document.createElement('a');
   a.href=url; a.download=`리오더_${today()}.json`; a.click(); URL.revokeObjectURL(url);
 }
@@ -1420,7 +1723,7 @@ function importData(input){
       const data=JSON.parse(e.target.result);
       if(!data.seasons||!data.orders){alert('올바른 파일이 아닙니다');return;}
       if(!confirm(`시즌 ${data.seasons.length}개, 주문 ${data.orders.length}건\n현재 데이터를 덮어씌우시겠습니까?`)) return;
-      seasons=data.seasons; orders=data.orders; save();
+      seasons=data.seasons; orders=data.orders; if(data.products) products=data.products; save();
       navGo('seasons'); renderSeasons(); alert('데이터를 가져왔습니다.');
     }catch(e){alert('파일 읽기 오류');}
   };
@@ -1451,6 +1754,7 @@ function refreshCurrentView(){
     case 'screen-alerts': renderAlerts(); break;
     case 'screen-done': renderDone(); break;
     case 'screen-detail': if(curOrderId){ const o=orders.find(x=>x.id===curOrderId); if(o) buildDetail(o); } break;
+    case 'screen-catalog': renderCatalog(); break;
     case 'screen-factory': renderFactory(); break;
   }
 }
@@ -1468,16 +1772,30 @@ load();        // 로컬 캐시로 즉시 시작
 rawShow('role'); // 캐시 데이터로 바로 역할 선택 화면 표시
 
 // Firebase 실시간 동기화
-let fbReady = false;
+let fbReady = false, productsInitialized = false;
 dbRef.on('value', snapshot => {
   const data = snapshot.val();
 
   if(data && (data.seasons || data.orders)){
-    // Firebase 데이터 → 배열로 변환 (최신순 정렬)
     seasons = data.seasons ? Object.values(data.seasons).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)) : [];
     orders  = data.orders  ? Object.values(data.orders).sort((a,b)=>new Date(b.date)-new Date(a.date)) : [];
+    products = data.products ? Object.values(data.products) : [];
+
+    // 최초 1회: 26여름 시즌에 기본 상품 카탈로그 자동 등록
+    if(!data.products && !productsInitialized && seasons.length){
+      productsInitialized = true;
+      const summerSeason = seasons.find(s => s.name.includes('여름'));
+      if(summerSeason){
+        products = getDefault26Products(summerSeason.id);
+        const pObj={};
+        products.forEach(p=>pObj[p.id]=p);
+        dbRef.child('products').set(pObj);
+      }
+    }
+
     localStorage.setItem('jj_seasons', JSON.stringify(seasons));
     localStorage.setItem('jj_orders',  JSON.stringify(orders));
+    localStorage.setItem('jj_products', JSON.stringify(products));
   } else if(!fbReady && !seasons.length){
     // 첫 실행, 아무 데이터 없음 — 샘플 데이터 초기화
     const sid1=uid(), sid2=uid();
@@ -1489,6 +1807,7 @@ dbRef.on('value', snapshot => {
       {id:uid(),seasonId:sid1,date:'2026-04-28',productName:'코지점프수트',color:'메런지',sizes:{...bSz,S:10,M:10,L:10,XL:5,JS:5},fabricCo:'나라원단',fabricName:'두꺼운 면혼방',fabricQty:200,accNote:'지퍼 40개',notes:'',status:'factory_received',fabricDate:'2026-04-29',factoryDate:'2026-05-01',accOrdered:false},
       {id:uid(),seasonId:sid2,date:'2026-05-05',productName:'보드레오나시',color:'아이',sizes:{...bSz,S:30,M:30,L:15,XL:15,JS:15},fabricCo:'',fabricName:'',fabricQty:null,accNote:'',notes:'',status:'pending',accOrdered:false}
     ];
+    products = getDefault26Products(sid1);
     save();
   }
 
