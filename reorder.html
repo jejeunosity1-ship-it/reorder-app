@@ -1482,20 +1482,17 @@ function renderFactory(){
   c.innerHTML=list.map(o=>{
     const total=sumSz(o);
     const needsReceive=['fabric_ordered','partial_delivery'].includes(o.status);
-    const needsCutting=o.status==='factory_received'&&!o.cuttingQty;
     const hasCut=!!o.cuttingQty;
+    const canCutEdit=['factory_received','cutting_done'].includes(o.status);
     const activeSizes=SZ.filter(s=>(o.sizes[s]||0)>0);
     const szHtml=activeSizes.map(s=>`<div class="fsize-item"><span class="fsize-lbl">${s}</span><span class="fsize-val ${(o.sizes[s]||0)===0?'zero':''}">${o.sizes[s]}</span></div>`).join('');
     let actionHtml='';
     if(needsReceive) actionHtml=`<button class="fbtn fbtn-confirm" onclick="fConfirmReceive('${o.id}')">✓ 원단 입고 확인</button>${o.partialDelivery?`<div style="font-size:13px;color:#e85800;text-align:center;margin-top:6px">⚠ 부분입고: ${o.partialNote||''}</div>`:''}`;
-    if(needsCutting){
-      const cutFields=activeSizes.map(s=>`<div class="fcut-item"><span class="fcut-lbl">${s}</span><span class="fcut-sub">발주: ${o.sizes[s]}장</span><input type="number" class="fcut-input" id="fc-${o.id}-${s}" value="${o.sizes[s]}" min="0"></div>`).join('');
-      actionHtml=`<div class="fcut-section"><div class="fcut-title">✂️ 재단 수량을 입력해 주세요</div><div class="fcut-grid">${cutFields}</div><button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">재단 수량 저장</button></div>`;
-    }
-    if(hasCut){
+    if(canCutEdit){
       const ct=sumCut(o),diff=ct-total;
-      const cutDisp=SZ.filter(s=>(o.cuttingQty[s]||0)>0).map(s=>`<div class="fsize-item"><span class="fsize-lbl">${s}</span><span class="fsize-val">${o.cuttingQty[s]}</span></div>`).join('');
-      actionHtml=`<div style="background:#edfaf1;border-radius:10px;padding:14px;margin-bottom:10px"><div style="font-size:14px;font-weight:800;color:#1a7a3c;margin-bottom:10px">✓ 재단 완료 — 총 ${ct}장</div><div class="fsizes">${cutDisp}</div>${diff!==0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px">${diff>0?`+${diff}장 초과`:diff+'장 부족'}</div>`:''}</div><button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button>`;
+      const cutFields=activeSizes.map(s=>`<div class="fcut-item"><span class="fcut-lbl">${s}</span><span class="fcut-sub">발주: ${o.sizes[s]}장</span><input type="number" class="fcut-input" id="fc-${o.id}-${s}" value="${hasCut?(o.cuttingQty[s]||0):o.sizes[s]}" min="0"></div>`).join('');
+      const diffHtml=hasCut&&ct>0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px;margin-bottom:8px">${diff>0?`+${diff}장 초과`:diff===0?'발주 수량 일치':`${diff}장 부족`}</div>`:'';
+      actionHtml=`<div class="fcut-section"><div class="fcut-title">${hasCut?'✂️ 재단 수량 (수정 가능)':'✂️ 재단 수량을 입력해 주세요'}</div><div class="fcut-grid">${cutFields}</div>${diffHtml}<button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">${hasCut?'재단 수량 수정':'재단 수량 저장'}</button></div>${hasCut?`<button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button>`:''}`;
     }
     const s=seasons.find(x=>x.id===o.seasonId);
     const catalogProd=products.find(p=>p.seasonId===o.seasonId&&p.name===o.productName);
