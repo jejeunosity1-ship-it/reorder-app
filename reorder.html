@@ -1498,7 +1498,7 @@ function renderFactory(){
     const catalogProd=products.find(p=>p.seasonId===o.seasonId&&p.name===o.productName);
     const photoToShow=o.photo||(catalogProd?.photo)||null;
     const allColors=catalogProd?.colors||[];
-    return `<div class="fcard ${needsReceive||needsCutting?'needs':''}">
+    return `<div class="fcard ${needsReceive||(canCutEdit&&!hasCut)?'needs':''}">
       ${photoToShow?`<img class="factory-photo" src="${photoToShow}">`:''}
       ${s?`<div style="font-size:11px;color:#aaa;margin-bottom:4px;font-weight:600">📁 ${s.name}</div>`:''}
       <div class="fprod">${o.productName}</div>
