@@ -537,6 +537,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
       <div class="fsec-title">기본 정보</div>
       <div class="frow"><label class="flabel">날짜</label><input type="date" class="finput" id="nDate"></div>
       <div class="frow"><label class="flabel">제품명</label><input type="text" class="finput" id="nName" placeholder="예: 베리씬가디건"></div>
+      <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="nFactory"><option value="">선택</option><option>청와대</option><option>다복사</option><option>다성니트</option><option>씨엠</option></select></div>
     </div>
 
     <!-- 색상별 수량 -->
@@ -612,8 +613,9 @@ const ROLE_INFO = {
   warehouse:{name:'창고직원',tag:'rt-warehouse',icon:'📦'},
   factory:{name:'공장사장님',tag:'',          icon:'🏭'}
 };
+const FACTORIES = ['청와대','다복사','다성니트','씨엠'];
 
-let seasons=[], orders=[], products=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders';
+let seasons=[], orders=[], products=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders', factoryFilter='all', curFactoryName='청와대';
 let colorCount = 0;
 let pendingNewPhoto = null, pendingEditPhoto = null, pendingProductPhoto = null;
 let productColors = [];
@@ -1150,6 +1152,7 @@ function buildDetail(o){
     </div>
     <div class="dsec">
       <div class="dsec-title">🧶 원단 정보</div>
+      <div class="drow"><span class="dkey">담당 공장</span><span class="dval"><b>${o.factory||'청와대'}</b></span></div>
       <div class="drow"><span class="dkey">원단 상호</span><span class="dval">${o.fabricCo||'—'}</span></div>
       <div class="drow"><span class="dkey">원단명</span><span class="dval">${o.fabricName||'—'}</span></div>
       <div class="drow"><span class="dkey">발주 수량</span><span class="dval">${o.fabricQty?o.fabricQty+' yard':'—'}</span></div>
@@ -1201,10 +1204,12 @@ function editOrder(id){
   pendingEditPhoto=null;
   const szFields=SZ.map(s=>`<div class="szitem"><span class="szlbl">${s}</span><input type="number" class="szinput" id="esz-${s}" value="${o.sizes[s]||0}" min="0" style="font-size:16px;padding:8px 2px"></div>`).join('');
   const photoHtml=o.photo?'<img class="photo-preview" src="'+o.photo+'">' :'';
+  const factoryOpts=FACTORIES.map(f=>`<option${(o.factory||'청와대')===f?' selected':''}>${f}</option>`).join('');
   sheet('✏️ 주문 편집',`
     <div class="frow"><label class="flabel">날짜</label><input type="date" class="finput" id="eDate" value="${o.date||''}"></div>
     <div class="frow"><label class="flabel">제품명</label><input type="text" class="finput" id="eName" value="${o.productName||''}"></div>
     <div class="frow"><label class="flabel">색상</label><input type="text" class="finput" id="eColor" value="${o.color||''}"></div>
+    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="eFactory"><option value="">선택</option>${factoryOpts}</select></div>
     <div class="frow"><label class="flabel">수량</label><div class="szgrid">${szFields}</div></div>
     <div class="frow"><label class="flabel">상품 사진</label>
       <div id="editPhotoPreview">${photoHtml}</div>
@@ -1221,6 +1226,7 @@ function saveEditOrder(id){
   o.date=document.getElementById('eDate').value;
   o.productName=name;
   o.color=document.getElementById('eColor').value.trim();
+  o.factory=document.getElementById('eFactory').value||'청와대';
   const sizes={}; SZ.forEach(s=>{ sizes[s]=parseInt(document.getElementById(`esz-${s}`)?.value)||0; }); o.sizes=sizes;
   if(pendingEditPhoto){ o.photo=pendingEditPhoto; pendingEditPhoto=null; }
   o.accNote=document.getElementById('eAccNote').value.trim();
@@ -1290,9 +1296,8 @@ function confirmFactory(id){
 }
 function actCutting(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  const active=SZ.filter(s=>(o.sizes[s]||0)>0);
-  const fields=active.map(s=>`<div class="cutitem"><span class="cutitem-lbl">${s}</span><span class="cutitem-sub">발주 ${o.sizes[s]}</span><input type="number" class="cutitem-input" id="cut-${s}" value="${o.cuttingQty?(o.cuttingQty[s]||0):(o.sizes[s]||0)}" min="0" oninput="updateDiffMsg('${id}')"></div>`).join('');
-  sheet('✂️ 재단 수량 입력',`<p style="font-size:13px;color:#888;margin-bottom:13px">실제 재단한 수량을 입력해주세요.</p><div class="cutgrid">${fields}</div><div id="diffMsg" style="margin-bottom:10px"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmCutting('${id}')">저장</button></div>`);
+  const fields=SZ.map(s=>{const ord=o.sizes[s]||0;return `<div class="cutitem"><span class="cutitem-lbl" style="${ord===0?'color:#ccc':''}">${s}</span><span class="cutitem-sub" style="${ord===0?'color:#ddd':''}">${ord>0?'발주 '+ord:'미발주'}</span><input type="number" class="cutitem-input" id="cut-${s}" value="${o.cuttingQty?(o.cuttingQty[s]||0):(ord>0?ord:0)}" min="0" oninput="updateDiffMsg('${id}')" style="${ord===0?'border-color:#e0e0e0;color:#aaa':''}"></div>`;}).join('');
+  sheet('✂️ 재단 수량 입력',`<p style="font-size:13px;color:#888;margin-bottom:13px">실제 재단한 수량을 입력해주세요. 미발주 사이즈도 추가 가능합니다.</p><div class="cutgrid">${fields}</div><div id="diffMsg" style="margin-bottom:10px"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmCutting('${id}')">저장</button></div>`);
   setTimeout(()=>updateDiffMsg(id),50);
 }
 function updateDiffMsg(id){
@@ -1421,6 +1426,7 @@ function saveOrder(){
     orders.unshift({
       id:uid(), seasonId:curSeasonId, date:document.getElementById('nDate').value,
       productName:name, color:colorName||`색상${saved+1}`, sizes,
+      factory:document.getElementById('nFactory').value||'청와대',
       fabricCo:'', fabricName:'', fabricQty:null,
       accNote:document.getElementById('nAccNote').value.trim(),
       notes:document.getElementById('nNotes').value.trim(),
@@ -1483,9 +1489,35 @@ function handleEditPhoto(input){
 // ══════════════════════════════════════════
 function renderFactory(){
   const c=document.getElementById('factoryBody');
-  const list=orders.filter(o=>['fabric_ordered','partial_delivery','factory_received','cutting_done'].includes(o.status));
-  if(!list.length){c.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">현재 대기 중인 작업 없음</div></div>`;return;}
-  c.innerHTML=list.map(o=>{
+  const factoryTabHtml=`<div style="margin-bottom:14px">
+    <div style="font-size:11px;font-weight:700;color:#aaa;letter-spacing:.5px;margin-bottom:7px">🏭 공장 선택</div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">${FACTORIES.map(f=>`<button onclick="setFactoryTab('${f}')" style="padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid ${curFactoryName===f?'#111':'#e5e5e5'};background:${curFactoryName===f?'#111':'#fff'};color:${curFactoryName===f?'#fff':'#888'};transition:all .15s">${f}</button>`).join('')}</div>
+  </div>`;
+  const allList=orders.filter(o=>['fabric_ordered','partial_delivery','factory_received','cutting_done'].includes(o.status)&&(o.factory||'청와대')===curFactoryName);
+  if(!allList.length){c.innerHTML=factoryTabHtml+`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">${curFactoryName} — 대기 중인 작업 없음</div></div>`;return;}
+  const cntWait=allList.filter(o=>['fabric_ordered','partial_delivery'].includes(o.status)).length;
+  const cntCut=allList.filter(o=>o.status==='factory_received').length;
+  const cntDone=allList.filter(o=>o.status==='cutting_done').length;
+  let list=allList;
+  if(factoryFilter==='wait') list=allList.filter(o=>['fabric_ordered','partial_delivery'].includes(o.status));
+  else if(factoryFilter==='cut') list=allList.filter(o=>o.status==='factory_received');
+  else if(factoryFilter==='done') list=allList.filter(o=>o.status==='cutting_done');
+  const summaryHtml=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+    <div class="stat" style="cursor:pointer;${factoryFilter==='wait'?'border-color:#1a56cc;border-width:2px;':''}" onclick="setFactoryFilter('wait')">
+      <div class="stat-n" style="${cntWait>0?'color:#1a56cc':''}">${cntWait}</div><div class="stat-l">입고대기</div></div>
+    <div class="stat" style="cursor:pointer;${factoryFilter==='cut'?'border-color:#926800;border-width:2px;':''}" onclick="setFactoryFilter('cut')">
+      <div class="stat-n" style="${cntCut>0?'color:#926800':''}">${cntCut}</div><div class="stat-l">재단필요</div></div>
+    <div class="stat" style="cursor:pointer;${factoryFilter==='done'?'border-color:#1a7a3c;border-width:2px;':''}" onclick="setFactoryFilter('done')">
+      <div class="stat-n" style="color:#1a7a3c">${cntDone}</div><div class="stat-l">재단완료</div></div>
+  </div>
+  <div class="tabs" style="margin-bottom:12px">
+    <div class="tab ${factoryFilter==='all'?'on':''}" onclick="setFactoryFilter('all')">전체 ${allList.length}건</div>
+    <div class="tab ${factoryFilter==='wait'?'on':''}" onclick="setFactoryFilter('wait')">입고대기 ${cntWait}</div>
+    <div class="tab ${factoryFilter==='cut'?'on':''}" onclick="setFactoryFilter('cut')">재단필요 ${cntCut}</div>
+    <div class="tab ${factoryFilter==='done'?'on':''}" onclick="setFactoryFilter('done')">재단완료 ${cntDone}</div>
+  </div>`;
+  if(!list.length){c.innerHTML=factoryTabHtml+summaryHtml+`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">해당 항목 없음</div></div>`;return;}
+  c.innerHTML=factoryTabHtml+summaryHtml+list.map(o=>{
     const total=sumSz(o);
     const needsReceive=['fabric_ordered','partial_delivery'].includes(o.status);
     const hasCut=!!o.cuttingQty;
@@ -1496,9 +1528,9 @@ function renderFactory(){
     let actionHtml='';
     if(needsReceive) actionHtml=`<button class="fbtn fbtn-confirm" onclick="fConfirmReceive('${o.id}')">✓ 원단 입고 확인</button>${o.partialDelivery?`<div style="font-size:13px;color:#e85800;text-align:center;margin-top:6px">⚠ 부분입고: ${o.partialNote||''}</div>`:''}`;
     if(canCutEdit){
-      const cutFields=activeSizes.map(s=>`<div class="fcut-item"><span class="fcut-lbl">${s}</span><span class="fcut-sub">발주: ${o.sizes[s]}장</span><input type="number" class="fcut-input" id="fc-${o.id}-${s}" value="${hasCut?(o.cuttingQty[s]||0):o.sizes[s]}" min="0"></div>`).join('');
+      const cutFields=SZ.map(s=>{const ord=o.sizes[s]||0;return `<div class="fcut-item"><span class="fcut-lbl" style="${ord===0?'color:#bbb':''}">${s}</span><span class="fcut-sub" style="${ord===0?'color:#ddd':''}">${ord>0?'발주: '+ord+'장':'미발주'}</span><input type="number" class="fcut-input" id="fc-${o.id}-${s}" value="${hasCut?(o.cuttingQty[s]||0):(ord>0?ord:0)}" min="0" style="${ord===0?'border-color:#e0e0e0;color:#999':''}"></div>`;}).join('');
       const diffHtml=hasCut&&ct>0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px;margin-bottom:8px">${diff>0?`+${diff}장 초과`:diff===0?'발주 수량 일치':`${diff}장 부족`}</div>`:'';
-      actionHtml=`<div class="fcut-section"><div class="fcut-title">${hasCut?'✂️ 재단 수량 (수정 가능)':'✂️ 재단 수량을 입력해 주세요'}</div><div class="fcut-grid">${cutFields}</div>${diffHtml}<button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">${hasCut?'재단 수량 수정':'재단 수량 저장'}</button></div>${hasCut?`<button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button>`:''}`;
+      actionHtml=`<div class="fcut-section"><div class="fcut-title">${hasCut?'✂️ 재단 수량 (수정 가능)':'✂️ 재단 수량을 입력해 주세요'}</div><div class="fcut-grid">${cutFields}</div>${diffHtml}<button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">${hasCut?'재단 수량 수정':'재단 수량 저장'}</button></div>${hasCut?`<button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button><button class="fbtn" style="background:#fff5f5;color:#c42020;border:2px solid #fca5a5;margin-top:6px" onclick="fUndoCutting('${o.id}')">↩ 재단 취소 (실수 수정)</button>`:`<button class="fbtn" style="background:#fff5f5;color:#c42020;border:2px solid #fca5a5;margin-top:6px" onclick="fUndoReceive('${o.id}')">↩ 원단 입고 취소 (오입고·반품)</button>`}`;
     }
     const s=seasons.find(x=>x.id===o.seasonId);
     const catalogProd=products.find(p=>p.seasonId===o.seasonId&&p.name===o.productName);
@@ -1538,6 +1570,20 @@ function renderFactory(){
       ${actionHtml}
     </div>`;
   }).join('');
+}
+function setFactoryFilter(f){ factoryFilter=f; renderFactory(); }
+function setFactoryTab(name){ curFactoryName=name; factoryFilter='all'; renderFactory(); }
+function fUndoCutting(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  if(!confirm(`${o.productName} ${o.color}\n재단 완료를 취소하시겠습니까?\n재단 수량이 초기화되고 '공장입고' 상태로 돌아갑니다.`)) return;
+  o.cuttingQty=null; o.status='factory_received'; save(); renderFactory();
+}
+function fUndoReceive(id){
+  const o=orders.find(x=>x.id===id); if(!o) return;
+  if(!confirm(`${o.productName} ${o.color}\n원단 입고 확인을 취소하시겠습니까?\n오입고·반품 등으로 원단이 다시 나가는 경우 사용하세요.\n'원단발주' 상태로 돌아갑니다.`)) return;
+  o.status=o.partialDelivery?'partial_delivery':'fabric_ordered';
+  o.factoryDate=null;
+  save(); renderFactory();
 }
 function fConfirmReceive(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
@@ -1587,6 +1633,7 @@ function renderCatalog(){
       ${photoHtml}
       <div class="cat-info">
         <div class="cat-name">${p.name}</div>
+        ${p.factory?`<div style="font-size:11px;color:#888;margin-top:2px;margin-bottom:3px">🏭 ${p.factory}</div>`:''}
         <div class="color-chips" style="margin-top:4px">${chips||'<span style="font-size:12px;color:#bbb">색상 미등록</span>'}</div>
       </div>
       ${canEdit?`<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:6px">
@@ -1601,8 +1648,10 @@ function renderCatalog(){
 function openNewProduct(){
   if(!curSeasonId){alert('시즌을 먼저 선택해주세요');return;}
   pendingProductPhoto=null; productColors=[];
+  const pFactOpts=FACTORIES.map(f=>`<option>${f}</option>`).join('');
   sheet('+ 상품 추가',`
     <div class="frow"><label class="flabel">상품명</label><input type="text" class="finput" id="pName" placeholder="예: 베리씬가디건"></div>
+    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="pFactory"><option value="">선택</option>${pFactOpts}</select></div>
     <div class="frow"><label class="flabel">상품 사진 <span style="color:#aaa;font-weight:400;font-size:11px">(선택 · 확인용)</span></label>
       <div id="prodPhotoPreview"></div>
       <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 사진 추가<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleProductPhoto(this)"></label>
@@ -1621,7 +1670,8 @@ function openNewProduct(){
 function saveNewProduct(){
   const name=document.getElementById('pName').value.trim();
   if(!name){alert('상품명을 입력해주세요');return;}
-  products.push({id:uid(),seasonId:curSeasonId,name,photo:pendingProductPhoto||null,colors:[...productColors]});
+  const factory=document.getElementById('pFactory')?.value||'';
+  products.push({id:uid(),seasonId:curSeasonId,name,factory,photo:pendingProductPhoto||null,colors:[...productColors]});
   pendingProductPhoto=null; productColors=[];
   save(); closeSheet(); renderCatalog();
 }
@@ -1630,8 +1680,10 @@ function editProduct(id){
   const p=products.find(x=>x.id===id); if(!p) return;
   pendingProductPhoto=null; productColors=[...p.colors];
   const photoHtml=p.photo?`<img class="photo-preview" src="${p.photo}">`:'';
+  const pEditFactOpts=FACTORIES.map(f=>`<option${(p.factory||'')===f?' selected':''}>${f}</option>`).join('');
   sheet('✏️ 상품 편집',`
     <div class="frow"><label class="flabel">상품명</label><input type="text" class="finput" id="pEditName" value="${p.name}"></div>
+    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="pEditFactory"><option value="">선택</option>${pEditFactOpts}</select></div>
     <div class="frow"><label class="flabel">상품 사진</label>
       <div id="prodPhotoPreview">${photoHtml}</div>
       <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 ${p.photo?'사진 변경':'사진 추가'}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleProductPhoto(this)"></label>
@@ -1651,6 +1703,7 @@ function saveEditProduct(id){
   const name=document.getElementById('pEditName').value.trim();
   if(!name){alert('상품명을 입력해주세요');return;}
   p.name=name; p.colors=[...productColors];
+  p.factory=document.getElementById('pEditFactory')?.value||p.factory||'';
   if(pendingProductPhoto){p.photo=pendingProductPhoto;pendingProductPhoto=null;}
   save(); closeSheet(); renderCatalog();
 }
