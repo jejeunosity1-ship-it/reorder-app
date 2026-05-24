@@ -2136,6 +2136,44 @@ function importData(input){
 }
 
 // ══════════════════════════════════════════
+// BASE64 → CLOUDINARY 자동 마이그레이션
+// ══════════════════════════════════════════
+async function migrateBase64Photos(){
+  const needMigrate = [
+    ...orders.filter(o => o.photo && o.photo.startsWith('data:')),
+    ...products.filter(p => p.photo && p.photo.startsWith('data:'))
+  ];
+  if(!needMigrate.length) return;
+
+  console.log(`사진 마이그레이션 시작: ${needMigrate.length}개`);
+  let changed = false;
+
+  for(const o of orders){
+    if(!o.photo || !o.photo.startsWith('data:')) continue;
+    try {
+      const blob = await (await fetch(o.photo)).blob();
+      o.photo = await uploadToCloudinary(blob);
+      changed = true;
+    } catch(e){ console.warn('마이그레이션 실패(주문):', o.id); }
+  }
+  for(const p of products){
+    if(!p.photo || !p.photo.startsWith('data:')) continue;
+    try {
+      const blob = await (await fetch(p.photo)).blob();
+      p.photo = await uploadToCloudinary(blob);
+      changed = true;
+    } catch(e){ console.warn('마이그레이션 실패(상품):', p.id); }
+  }
+
+  if(changed){
+    localStorage.setItem('jj_orders', JSON.stringify(orders));
+    localStorage.setItem('jj_products', JSON.stringify(products));
+    save();
+    console.log('마이그레이션 완료 — Cloudinary URL로 저장됨');
+  }
+}
+
+// ══════════════════════════════════════════
 // FIREBASE SYNC
 // ══════════════════════════════════════════
 function setSyncStatus(state){
@@ -2222,6 +2260,9 @@ dbRef.on('value', snapshot => {
 
   // Firebase 로드 완료 후 대기 중이던 save 실행
   if(pendingSave){ const w=pendingSave; pendingSave=null; save(w); }
+
+  // base64 사진 → Cloudinary 자동 마이그레이션 (1회성)
+  migrateBase64Photos();
 
   // 자동완성 외부 클릭 닫기 (Firebase 콜백 후 DOM 준비된 시점에 등록)
   if(!window._acListenerAdded){
