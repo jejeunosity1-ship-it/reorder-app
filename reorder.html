@@ -193,7 +193,38 @@ input[type=number]{-moz-appearance:textfield}
 .finput{width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;background:#fff;color:#111;-webkit-appearance:none;transition:border-color .15s}
 .finput:focus{border-color:#111}
 textarea.finput{resize:none;height:70px;line-height:1.5}
-select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2020/12/schema' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative}
+.ac-drop{
+  position:absolute;top:calc(100% + 2px);left:0;right:0;
+  background:#fff;border:1.5px solid #e5e5e5;border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:200;
+  max-height:230px;overflow-y:auto;display:none;
+}
+.ac-drop.open{display:block}
+.ac-item{
+  padding:11px 14px;cursor:pointer;border-bottom:1px solid #f5f5f5;
+  -webkit-tap-highlight-color:transparent;
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:active{background:#f9f9f9}
+.ac-item-name{font-size:14px;font-weight:700;color:#111;margin-bottom:4px}
+.ac-chips{display:flex;gap:5px;flex-wrap:wrap}
+.ac-chip{
+  font-size:11px;color:#666;background:#f3f4f6;
+  border-radius:20px;padding:2px 9px;
+}
+.ac-empty{padding:13px 14px;font-size:13px;color:#bbb;text-align:center}
+.ac-manual{
+  padding:10px 14px;font-size:12px;color:#aaa;
+  border-top:1px solid #f0f0f0;display:flex;align-items:center;gap:6px;
+}
+
+/* BACKUP BADGE */
+.backup-btn{font-size:12px;background:#f3f4f6;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;color:#555;font-weight:600}
+.backup-btn:active{background:#e5e7eb}
 
 /* COLOR ENTRY */
 .color-entry{background:#f9f9f9;border-radius:10px;border:1.5px solid #e5e5e5;padding:13px;margin-bottom:10px}
@@ -293,12 +324,6 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 .fcut-lbl{font-size:12px;font-weight:700;color:#7c5800}
 .fcut-sub{font-size:11px;color:#c8a000;font-weight:500}
 .fcut-input{width:100%;border:1.5px solid #fcd34d;border-radius:8px;padding:10px 3px;font-size:22px;font-weight:800;text-align:center;background:#fff;outline:none;color:#111}
-.fcard.fcard-done{border-color:#10b981;background:#f0fdf4}
-.fcard-done-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.fcard-done-badge{font-size:12px;font-weight:700;color:#1a7a3c;background:#dcfce7;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0}
-.fcard-expand-btn{background:none;border:none;font-size:12px;color:#aaa;cursor:pointer;padding:4px 0;display:block;margin-top:4px;text-align:right;width:100%}
-.fcard-detail{display:none;margin-top:14px;padding-top:14px;border-top:1px solid #d1fae5}
-.fcard-detail.open{display:block}
 
 /* SHEET */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end}
@@ -387,6 +412,8 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
   <div style="display:flex;gap:6px;align-items:center">
     <span id="syncStatus" style="font-size:11px;color:#aaa"></span>
     <button class="btn btn-ghost btn-sm" onclick="changeRole()" style="width:auto;font-size:12px">역할변경</button>
+    <button class="backup-btn" onclick="exportBackup()" title="JSON 백업 다운로드">💾</button>
+    <label class="backup-btn" title="JSON 백업 복원" style="cursor:pointer">📂<input type="file" accept=".json" style="display:none" onchange="importBackup(this)"></label>
     <button class="btn btn-ghost btn-sm" onclick="goShare()" style="width:auto;font-size:18px;padding:6px 10px">📤</button>
   </div>
 </div>
@@ -463,7 +490,10 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 
 <!-- ═══ SCREEN: 시즌 카탈로그 ═══ -->
 <div class="screen" id="screen-catalog">
-  <div class="main" style="padding-top:14px">
+  <div style="padding:14px 14px 0;max-width:430px;margin:0 auto">
+    <button id="catalogAddBtn" class="add-season-btn" onclick="openNewProduct()" style="display:none;margin-bottom:12px">+ 상품 추가</button>
+  </div>
+  <div class="main" style="padding-top:4px">
     <div id="catalogBody"></div>
   </div>
 </div>
@@ -536,8 +566,24 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <div class="fsec">
       <div class="fsec-title">기본 정보</div>
       <div class="frow"><label class="flabel">날짜</label><input type="date" class="finput" id="nDate"></div>
-      <div class="frow"><label class="flabel">제품명</label><input type="text" class="finput" id="nName" placeholder="예: 베리씬가디건"></div>
-      <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="nFactory"><option value="">선택</option><option>청와대</option><option>다복사</option><option>다성니트</option><option>씨엠</option></select></div>
+      <div class="frow">
+        <label class="flabel">제품명 <span style="font-size:11px;color:#bbb;font-weight:400">DB 상품명 자동완성 · 직접 입력도 가능</span></label>
+        <div class="ac-wrap">
+          <input type="text" class="finput" id="nName" placeholder="예: 베리씬가디건"
+            oninput="acSearch(this.value)" onfocus="acSearch(this.value)" autocomplete="off">
+          <div id="acDrop" class="ac-drop"></div>
+        </div>
+      </div>
+      <div class="frow">
+        <label class="flabel">담당 공장 <span style="font-size:11px;color:#bbb;font-weight:400">(선택)</span></label>
+        <select class="finput" id="nFactory">
+          <option value="">미지정</option>
+          <option value="청와대">청와대</option>
+          <option value="다복사">다복사</option>
+          <option value="다성니트">다성니트</option>
+          <option value="씨엠모자">씨엠모자</option>
+        </select>
+      </div>
     </div>
 
     <!-- 색상별 수량 -->
@@ -588,6 +634,8 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
     <span style="font-weight:800;font-size:15px">공장 확인</span>
     <div style="width:60px"></div>
   </div>
+  <div id="factoryTabBar" style="background:#fff;border-bottom:1px solid #e5e5e5;padding:8px 14px;overflow-x:auto;display:flex;gap:6px;-webkit-overflow-scrolling:touch"></div>
+  <div id="factoryFilterBar" style="background:#fff;border-bottom:1px solid #e5e5e5;padding:6px 14px;overflow-x:auto;display:flex;gap:6px;-webkit-overflow-scrolling:touch"></div>
   <div class="main" id="factoryBody" style="padding-top:14px"></div>
 </div>
 
@@ -604,6 +652,7 @@ select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.
 // DATA
 // ══════════════════════════════════════════
 const SZ = ['18M','XS','S','M','L','XL','JS','JM','Free'];
+const FACTORIES = ['청와대','다복사','다성니트','씨엠모자'];
 const SL = {pending:'접수',fabric_ordered:'원단발주',partial_delivery:'부분입고',factory_received:'공장입고',cutting_done:'재단완료',warehouse_received:'창고입고',complete:'완료'};
 const SC = {pending:'b-gray',fabric_ordered:'b-blue',partial_delivery:'b-orange',factory_received:'b-yellow',cutting_done:'b-green',warehouse_received:'b-green',complete:'b-green'};
 const STAGE_CLR = {pending:'#d1d5db',fabric_ordered:'#93c5fd',partial_delivery:'#fdba74',factory_received:'#fde047',cutting_done:'#6ee7b7',warehouse_received:'#34d399',complete:'#10b981'};
@@ -613,12 +662,17 @@ const ROLE_INFO = {
   warehouse:{name:'창고직원',tag:'rt-warehouse',icon:'📦'},
   factory:{name:'공장사장님',tag:'',          icon:'🏭'}
 };
-const FACTORIES = ['청와대','다복사','다성니트','씨엠'];
 
-let seasons=[], orders=[], products=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders', factoryFilter='all', curFactoryName='청와대';
+// ── Cloudinary ──
+const CLOUDINARY_CLOUD = 'DGGGXRWNJ';
+const CLOUDINARY_PRESET = 'fzbgboej';
+
+let seasons=[], orders=[], products=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders';
 let colorCount = 0;
 let pendingNewPhoto = null, pendingEditPhoto = null, pendingProductPhoto = null;
 let productColors = [];
+let pendingSave = null; // Firebase 로드 전 save() 호출 시 대기
+let factoryFilter='all', curFactoryName='all';
 
 // ── Firebase ──
 const firebaseConfig = {
@@ -638,21 +692,147 @@ function load(){
   seasons=JSON.parse(localStorage.getItem('jj_seasons')||'[]');
   orders=JSON.parse(localStorage.getItem('jj_orders')||'[]');
   products=JSON.parse(localStorage.getItem('jj_products')||'[]');
+  curSeasonId=sessionStorage.getItem('jj_curSeason')||null;
 }
-function save(){
-  localStorage.setItem('jj_seasons',JSON.stringify(seasons));
-  localStorage.setItem('jj_orders',JSON.stringify(orders));
-  localStorage.setItem('jj_products',JSON.stringify(products));
-  const sObj={},oObj={},pObj={};
-  seasons.forEach(s=>sObj[s.id]=s);
-  orders.forEach(o=>oObj[o.id]=o);
-  products.forEach(p=>pObj[p.id]=p);
+function save(what='all'){
+  // Firebase 로드 완료 전엔 절대 저장 안 함 — 기존 데이터 덮어쓰기 방지
+  if(!fbReady){ pendingSave=what; return; }
+
+  try {
+    localStorage.setItem('jj_seasons',JSON.stringify(seasons));
+    localStorage.setItem('jj_orders',JSON.stringify(orders));
+    localStorage.setItem('jj_products',JSON.stringify(products));
+  } catch(e) {
+    alert('⚠️ 로컬 저장 실패: 저장공간이 가득 찼습니다.\n💾 헤더의 백업 버튼으로 JSON 백업을 먼저 받으세요.');
+  }
+
   setSyncStatus('syncing');
-  dbRef.set({seasons:sObj,orders:oObj,products:pObj})
+
+  // 변경된 항목만 개별 저장 — 전체 덮어쓰기 방지
+  const promises=[];
+  if(what==='all'||what==='seasons'){
+    const sObj={}; seasons.forEach(s=>sObj[s.id]=s);
+    promises.push(dbRef.child('seasons').set(sObj));
+  }
+  if(what==='all'||what==='orders'){
+    // 사진(base64)은 Firebase 용량 초과 방지를 위해 로컬 전용 — Firebase엔 제외
+    const oObj={};
+    orders.forEach(o=>{ const {photo,...rest}=o; oObj[o.id]=rest; });
+    promises.push(dbRef.child('orders').set(oObj));
+  }
+  if(what==='all'||what==='products'){
+    // 상품 사진도 동일하게 로컬 전용
+    const pObj={};
+    products.forEach(p=>{ const {photo,...rest}=p; pObj[p.id]=rest; });
+    promises.push(dbRef.child('products').set(pObj));
+  }
+
+  Promise.all(promises)
     .then(()=>setSyncStatus('synced'))
-    .catch(()=>setSyncStatus('offline'));
+    .catch(err=>{ console.error('Firebase 저장 실패:', err); setSyncStatus('offline'); });
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// ══════════════════════════════════════════
+// AUTOCOMPLETE
+// ══════════════════════════════════════════
+function acSearch(val){
+  const drop = document.getElementById('acDrop');
+  if(!drop) return;
+  const q = val.trim().toLowerCase();
+
+  // 시즌 관련 상품만 우선, 없으면 전체 검색
+  const pool = products.filter(p => p.seasonId === curSeasonId).length
+    ? products.filter(p => p.seasonId === curSeasonId)
+    : products;
+
+  const matches = q
+    ? pool.filter(p => p.name.toLowerCase().includes(q))
+    : pool.slice(0, 8); // 빈 쿼리면 전체 목록 최대 8개
+
+  if(!matches.length && !q){ drop.classList.remove('open'); return; }
+
+  if(!matches.length){
+    drop.innerHTML = `<div class="ac-empty">일치하는 상품 없음</div>
+      <div class="ac-manual">✏️ 직접 입력으로 계속 작성하세요</div>`;
+    drop.classList.add('open');
+    return;
+  }
+
+  drop.innerHTML = matches.map(p => {
+    const chips = (p.colors||[]).map(c=>`<span class="ac-chip">${c}</span>`).join('');
+    return `<div class="ac-item" onmousedown="acSelect('${p.id}')">
+      <div class="ac-item-name">${p.name}</div>
+      ${chips ? `<div class="ac-chips">${chips}</div>` : ''}
+    </div>`;
+  }).join('') + `<div class="ac-manual">✏️ 직접 입력도 가능</div>`;
+  drop.classList.add('open');
+}
+
+function acSelect(productId){
+  const p = products.find(x => x.id === productId);
+  if(!p) return;
+
+  document.getElementById('nName').value = p.name;
+  document.getElementById('acDrop').classList.remove('open');
+
+  // 컬러 자동 채우기
+  document.getElementById('colorList').innerHTML = '';
+  colorCount = 0;
+  const colors = p.colors && p.colors.length ? p.colors : [''];
+  colors.forEach(c => addColor(c));
+  calcAllTotals();
+
+  // 상품 사진 자동 연결 (없을 때만)
+  if(p.photo && !pendingNewPhoto){
+    const pp = document.getElementById('newPhotoPreview');
+    if(pp) pp.innerHTML = `<img class="photo-preview" src="${p.photo}">`;
+    pendingNewPhoto = p.photo;
+  }
+}
+
+function acClose(){
+  const drop = document.getElementById('acDrop');
+  if(drop) drop.classList.remove('open');
+}
+
+// ══════════════════════════════════════════
+// JSON 백업 / 복원
+// ══════════════════════════════════════════
+function exportBackup(){
+  const data = { exportedAt: new Date().toISOString(), seasons, orders, products };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.download = `리오더_백업_${today()}.json`;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importBackup(input){
+  const file = input.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.seasons || !data.orders){
+        alert('올바른 백업 파일이 아닙니다.'); return;
+      }
+      const msg = `백업 복원:\n· 시즌 ${data.seasons.length}개\n· 주문 ${data.orders.length}개\n· 상품 ${(data.products||[]).length}개\n\n현재 데이터를 덮어씌웁니다. 계속할까요?`;
+      if(!confirm(msg)) return;
+      seasons  = data.seasons;
+      orders   = data.orders;
+      products = data.products || [];
+      save();
+      refreshCurrentView();
+      alert('✅ 복원 완료!');
+    } catch(err){
+      alert('파일 읽기 실패: 올바른 JSON 파일인지 확인해주세요.');
+    }
+  };
+  r.readAsText(file);
+  input.value = '';
+}
 function today(){ return new Date().toISOString().split('T')[0]; }
 function fmtDate(d){ if(!d) return ''; const x=new Date(d); return `${x.getMonth()+1}/${x.getDate()}`; }
 function sumSz(o){ return SZ.reduce((a,s)=>a+(o.sizes[s]||0),0); }
@@ -707,6 +887,7 @@ function showMainUI(){
 
 function changeRole(){
   curRole=null; curSeasonId=null;
+  sessionStorage.removeItem('jj_curSeason');
   localStorage.removeItem('jj_role');
   document.getElementById('factoryBar').style.display='none';
   document.getElementById('roleIndicator').style.display='none';
@@ -763,11 +944,20 @@ function setSubTab(tab){
   document.getElementById('stab-'+tab).classList.add('on');
   if(tab==='orders'){ rawShow('orders'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display=curRole!=='warehouse'?'':'none'; renderOrders(); }
   else if(tab==='overview'){ rawShow('overview'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display='none'; renderOverview(); }
-  else if(tab==='catalog'){ rawShow('catalog'); document.getElementById('ctxHdr').style.display='flex'; document.getElementById('mainNav').style.display='flex'; document.getElementById('fab').style.display='none'; renderCatalog(); }
+  else if(tab==='catalog'){
+    rawShow('catalog');
+    document.getElementById('ctxHdr').style.display='flex';
+    document.getElementById('mainNav').style.display='flex';
+    document.getElementById('fab').style.display='none';
+    const addBtn=document.getElementById('catalogAddBtn');
+    if(addBtn) addBtn.style.display=curRole!=='factory'?'':'none';
+    renderCatalog();
+  }
 }
 
 function exitSeason(){
   curSeasonId=null;
+  sessionStorage.removeItem('jj_curSeason');
   if(curRole==='warehouse'){ showScreen('seasons'); renderSeasons(); }
   else { showScreen('seasons'); renderSeasons(); }
 }
@@ -799,12 +989,25 @@ function renderSeasons(){
         <div class="season-prog-bar"><div class="season-prog-fill" style="width:${pct}%"></div></div>
         <div class="season-prog-label">완료 ${done}건 (${pct}%)</div>
       </div>
-      ${canAdd?`<button onclick="event.stopPropagation();openRenameSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#bbb;cursor:pointer;flex-shrink:0" title="시즌명 수정">✏️</button>`:''}
+      ${canAdd?`<button onclick="event.stopPropagation();openRenameSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#bbb;cursor:pointer;flex-shrink:0" title="시즌명 수정">✏️</button>
+      <button onclick="event.stopPropagation();deleteSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#ccc;cursor:pointer;flex-shrink:0" title="시즌 삭제">🗑️</button>`:''}
       <div class="season-arrow">›</div>
     </div>`;
   }).join('');
   c.innerHTML = html + (canAdd?`<div class="add-season-btn" onclick="openNewSeason()">+ 새 시즌 추가</div>`:'');
   updateAlertBadge();
+}
+
+function deleteSeason(id){
+  const s=seasons.find(x=>x.id===id); if(!s) return;
+  const oCount=orders.filter(o=>o.seasonId===id).length;
+  const pCount=products.filter(p=>p.seasonId===id).length;
+  const warn=oCount||pCount?`\n\n⚠️ 이 시즌의 주문 ${oCount}건, 상품 ${pCount}개도 함께 삭제됩니다.`:'';
+  if(!confirm(`'${s.name}' 시즌을 삭제하시겠습니까?${warn}\n\n되돌릴 수 없습니다.`)) return;
+  seasons=seasons.filter(x=>x.id!==id);
+  orders=orders.filter(o=>o.seasonId!==id);
+  products=products.filter(p=>p.seasonId!==id);
+  save(); renderSeasons();
 }
 
 function openNewSeason(){
@@ -836,6 +1039,7 @@ function confirmRenameSeason(id){
 
 function enterSeason(sid){
   curSeasonId=sid;
+  sessionStorage.setItem('jj_curSeason',sid);
   const s=seasons.find(x=>x.id===sid);
   document.getElementById('ctxSeasonName').textContent=s?.name||'';
   curSubTab='orders';
@@ -1151,8 +1355,8 @@ function buildDetail(o){
       <div class="szdisplay">${szHtml}</div>
     </div>
     <div class="dsec">
-      <div class="dsec-title">🧶 원단 정보</div>
-      <div class="drow"><span class="dkey">담당 공장</span><span class="dval"><b>${o.factory||'청와대'}</b></span></div>
+      <div class="dsec-title">🏭 공장 / 원단 정보</div>
+      <div class="drow"><span class="dkey">담당 공장</span><span class="dval">${o.factory||'미지정'}</span></div>
       <div class="drow"><span class="dkey">원단 상호</span><span class="dval">${o.fabricCo||'—'}</span></div>
       <div class="drow"><span class="dkey">원단명</span><span class="dval">${o.fabricName||'—'}</span></div>
       <div class="drow"><span class="dkey">발주 수량</span><span class="dval">${o.fabricQty?o.fabricQty+' yard':'—'}</span></div>
@@ -1204,12 +1408,15 @@ function editOrder(id){
   pendingEditPhoto=null;
   const szFields=SZ.map(s=>`<div class="szitem"><span class="szlbl">${s}</span><input type="number" class="szinput" id="esz-${s}" value="${o.sizes[s]||0}" min="0" style="font-size:16px;padding:8px 2px"></div>`).join('');
   const photoHtml=o.photo?'<img class="photo-preview" src="'+o.photo+'">' :'';
-  const factoryOpts=FACTORIES.map(f=>`<option${(o.factory||'청와대')===f?' selected':''}>${f}</option>`).join('');
   sheet('✏️ 주문 편집',`
     <div class="frow"><label class="flabel">날짜</label><input type="date" class="finput" id="eDate" value="${o.date||''}"></div>
     <div class="frow"><label class="flabel">제품명</label><input type="text" class="finput" id="eName" value="${o.productName||''}"></div>
     <div class="frow"><label class="flabel">색상</label><input type="text" class="finput" id="eColor" value="${o.color||''}"></div>
-    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="eFactory"><option value="">선택</option>${factoryOpts}</select></div>
+    <div class="frow"><label class="flabel">담당 공장</label>
+      <select class="finput" id="eFactory">
+        ${['','청와대','다복사','다성니트','씨엠모자'].map(f=>`<option value="${f}" ${(o.factory||'')===f?'selected':''}>${f||'미지정'}</option>`).join('')}
+      </select>
+    </div>
     <div class="frow"><label class="flabel">수량</label><div class="szgrid">${szFields}</div></div>
     <div class="frow"><label class="flabel">상품 사진</label>
       <div id="editPhotoPreview">${photoHtml}</div>
@@ -1226,7 +1433,7 @@ function saveEditOrder(id){
   o.date=document.getElementById('eDate').value;
   o.productName=name;
   o.color=document.getElementById('eColor').value.trim();
-  o.factory=document.getElementById('eFactory').value||'청와대';
+  o.factory=document.getElementById('eFactory')?.value||'';
   const sizes={}; SZ.forEach(s=>{ sizes[s]=parseInt(document.getElementById(`esz-${s}`)?.value)||0; }); o.sizes=sizes;
   if(pendingEditPhoto){ o.photo=pendingEditPhoto; pendingEditPhoto=null; }
   o.accNote=document.getElementById('eAccNote').value.trim();
@@ -1296,8 +1503,9 @@ function confirmFactory(id){
 }
 function actCutting(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  const fields=SZ.map(s=>{const ord=o.sizes[s]||0;return `<div class="cutitem"><span class="cutitem-lbl" style="${ord===0?'color:#ccc':''}">${s}</span><span class="cutitem-sub" style="${ord===0?'color:#ddd':''}">${ord>0?'발주 '+ord:'미발주'}</span><input type="number" class="cutitem-input" id="cut-${s}" value="${o.cuttingQty?(o.cuttingQty[s]||0):(ord>0?ord:0)}" min="0" oninput="updateDiffMsg('${id}')" style="${ord===0?'border-color:#e0e0e0;color:#aaa':''}"></div>`;}).join('');
-  sheet('✂️ 재단 수량 입력',`<p style="font-size:13px;color:#888;margin-bottom:13px">실제 재단한 수량을 입력해주세요. 미발주 사이즈도 추가 가능합니다.</p><div class="cutgrid">${fields}</div><div id="diffMsg" style="margin-bottom:10px"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmCutting('${id}')">저장</button></div>`);
+  const active=SZ.filter(s=>(o.sizes[s]||0)>0);
+  const fields=active.map(s=>`<div class="cutitem"><span class="cutitem-lbl">${s}</span><span class="cutitem-sub">발주 ${o.sizes[s]}</span><input type="number" class="cutitem-input" id="cut-${s}" value="${o.cuttingQty?(o.cuttingQty[s]||0):(o.sizes[s]||0)}" min="0" oninput="updateDiffMsg('${id}')"></div>`).join('');
+  sheet('✂️ 재단 수량 입력',`<p style="font-size:13px;color:#888;margin-bottom:13px">실제 재단한 수량을 입력해주세요.</p><div class="cutgrid">${fields}</div><div id="diffMsg" style="margin-bottom:10px"></div><div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmCutting('${id}')">저장</button></div>`);
   setTimeout(()=>updateDiffMsg(id),50);
 }
 function updateDiffMsg(id){
@@ -1395,6 +1603,7 @@ function goNew(){
   if(!curSeasonId){ alert('시즌을 먼저 선택해주세요'); return; }
   document.getElementById('nDate').value=today();
   ['nName','nAccNote','nNotes'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  const nf=document.getElementById('nFactory'); if(nf) nf.value='';
   document.getElementById('colorList').innerHTML='';
   document.getElementById('totalSummary').textContent='';
   colorCount=0; pendingNewPhoto=null;
@@ -1426,11 +1635,11 @@ function saveOrder(){
     orders.unshift({
       id:uid(), seasonId:curSeasonId, date:document.getElementById('nDate').value,
       productName:name, color:colorName||`색상${saved+1}`, sizes,
-      factory:document.getElementById('nFactory').value||'청와대',
       fabricCo:'', fabricName:'', fabricQty:null,
       accNote:document.getElementById('nAccNote').value.trim(),
       notes:document.getElementById('nNotes').value.trim(),
       photo:pendingNewPhoto||null,
+      factory:document.getElementById('nFactory')?.value||'',
       status:'pending', accOrdered:false
     });
     saved++;
@@ -1449,140 +1658,149 @@ function deleteOrder(){
 }
 
 // ══════════════════════════════════════════
-// PHOTO
+// PHOTO — Cloudinary 업로드
 // ══════════════════════════════════════════
-function resizeImage(file,cb){
-  const r=new FileReader();
-  r.onload=e=>{
-    const img=new Image();
-    img.onload=()=>{
-      const MAX=700,canvas=document.createElement('canvas');
-      let w=img.width,h=img.height;
-      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
-      canvas.width=w;canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      cb(canvas.toDataURL('image/jpeg',.78));
-    };
-    img.src=e.target.result;
-  };
-  r.readAsDataURL(file);
+async function uploadToCloudinary(file){
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {method:'POST',body:fd});
+  if(!res.ok) throw new Error('업로드 실패');
+  const data = await res.json();
+  // 최대 700px 너비로 자동 리사이즈 URL 반환
+  return data.secure_url.replace('/upload/', '/upload/w_700,q_78,f_auto/');
 }
+
 function handleNewPhoto(input){
   const file=input.files[0]; if(!file) return;
-  resizeImage(file,url=>{
+  const p=document.getElementById('newPhotoPreview');
+  if(p) p.innerHTML=`<div style="padding:12px;color:#aaa;font-size:13px">⏳ 업로드 중...</div>`;
+  uploadToCloudinary(file).then(url=>{
     pendingNewPhoto=url;
-    const p=document.getElementById('newPhotoPreview');
     if(p) p.innerHTML=`<img class="photo-preview" src="${url}">`;
+  }).catch(()=>{
+    if(p) p.innerHTML=`<div style="padding:12px;color:#e53;font-size:13px">❌ 업로드 실패. 다시 시도해주세요.</div>`;
   });
 }
 function handleEditPhoto(input){
   const file=input.files[0]; if(!file) return;
-  resizeImage(file,url=>{
+  const p=document.getElementById('editPhotoPreview');
+  if(p) p.innerHTML=`<div style="padding:12px;color:#aaa;font-size:13px">⏳ 업로드 중...</div>`;
+  uploadToCloudinary(file).then(url=>{
     pendingEditPhoto=url;
-    const p=document.getElementById('editPhotoPreview');
     if(p) p.innerHTML=`<img class="photo-preview" src="${url}">`;
+  }).catch(()=>{
+    if(p) p.innerHTML=`<div style="padding:12px;color:#e53;font-size:13px">❌ 업로드 실패. 다시 시도해주세요.</div>`;
   });
 }
 
 // ══════════════════════════════════════════
 // FACTORY MODE
 // ══════════════════════════════════════════
+if(!window._fExp) window._fExp={};
+
 function renderFactory(){
+  // 공장 탭 바
+  const tabBar=document.getElementById('factoryTabBar');
+  if(tabBar){
+    tabBar.innerHTML=['all',...FACTORIES].map(f=>`<div class="tab${curFactoryName===f?' on':''}" onclick="setFactoryTab('${f}')" style="flex-shrink:0">${f==='all'?'전체':f}</div>`).join('');
+  }
+  // 상태 필터 바
+  const filterBar=document.getElementById('factoryFilterBar');
+  if(filterBar){
+    const flist=[{k:'all',l:'전체'},{k:'pending',l:'입고대기'},{k:'cutting',l:'재단중'},{k:'done',l:'재단완료'}];
+    filterBar.innerHTML=flist.map(({k,l})=>`<div class="tab${factoryFilter===k?' on':''}" onclick="setFactoryFilter('${k}')" style="flex-shrink:0">${l}</div>`).join('');
+  }
+
   const c=document.getElementById('factoryBody');
-  const factoryTabHtml=`<div style="margin-bottom:14px">
-    <div style="font-size:11px;font-weight:700;color:#aaa;letter-spacing:.5px;margin-bottom:7px">🏭 공장 선택</div>
-    <div style="display:flex;gap:7px;flex-wrap:wrap">${FACTORIES.map(f=>`<button onclick="setFactoryTab('${f}')" style="padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid ${curFactoryName===f?'#111':'#e5e5e5'};background:${curFactoryName===f?'#111':'#fff'};color:${curFactoryName===f?'#fff':'#888'};transition:all .15s">${f}</button>`).join('')}</div>
-  </div>`;
-  const allList=orders.filter(o=>['fabric_ordered','partial_delivery','factory_received','cutting_done'].includes(o.status)&&(o.factory||'청와대')===curFactoryName);
-  if(!allList.length){c.innerHTML=factoryTabHtml+`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">${curFactoryName} — 대기 중인 작업 없음</div></div>`;return;}
-  const cntWait=allList.filter(o=>['fabric_ordered','partial_delivery'].includes(o.status)).length;
-  const cntCut=allList.filter(o=>o.status==='factory_received').length;
-  const cntDone=allList.filter(o=>o.status==='cutting_done').length;
-  let list=allList;
-  if(factoryFilter==='wait') list=allList.filter(o=>['fabric_ordered','partial_delivery'].includes(o.status));
-  else if(factoryFilter==='cut') list=allList.filter(o=>o.status==='factory_received');
-  else if(factoryFilter==='done') list=allList.filter(o=>o.status==='cutting_done');
-  const summaryHtml=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
-    <div class="stat" style="cursor:pointer;${factoryFilter==='wait'?'border-color:#1a56cc;border-width:2px;':''}" onclick="setFactoryFilter('wait')">
-      <div class="stat-n" style="${cntWait>0?'color:#1a56cc':''}">${cntWait}</div><div class="stat-l">입고대기</div></div>
-    <div class="stat" style="cursor:pointer;${factoryFilter==='cut'?'border-color:#926800;border-width:2px;':''}" onclick="setFactoryFilter('cut')">
-      <div class="stat-n" style="${cntCut>0?'color:#926800':''}">${cntCut}</div><div class="stat-l">재단필요</div></div>
-    <div class="stat" style="cursor:pointer;${factoryFilter==='done'?'border-color:#1a7a3c;border-width:2px;':''}" onclick="setFactoryFilter('done')">
-      <div class="stat-n" style="color:#1a7a3c">${cntDone}</div><div class="stat-l">재단완료</div></div>
-  </div>
-  <div class="tabs" style="margin-bottom:12px">
-    <div class="tab ${factoryFilter==='all'?'on':''}" onclick="setFactoryFilter('all')">전체 ${allList.length}건</div>
-    <div class="tab ${factoryFilter==='wait'?'on':''}" onclick="setFactoryFilter('wait')">입고대기 ${cntWait}</div>
-    <div class="tab ${factoryFilter==='cut'?'on':''}" onclick="setFactoryFilter('cut')">재단필요 ${cntCut}</div>
-    <div class="tab ${factoryFilter==='done'?'on':''}" onclick="setFactoryFilter('done')">재단완료 ${cntDone}</div>
-  </div>`;
-  if(!list.length){c.innerHTML=factoryTabHtml+summaryHtml+`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">해당 항목 없음</div></div>`;return;}
-  c.innerHTML=factoryTabHtml+summaryHtml+list.map(o=>{
+  let list=orders.filter(o=>['fabric_ordered','partial_delivery','factory_received','cutting_done'].includes(o.status));
+  if(curFactoryName!=='all') list=list.filter(o=>(o.factory||'')===curFactoryName);
+  if(factoryFilter==='pending') list=list.filter(o=>['fabric_ordered','partial_delivery'].includes(o.status));
+  else if(factoryFilter==='cutting') list=list.filter(o=>o.status==='factory_received');
+  else if(factoryFilter==='done') list=list.filter(o=>o.status==='cutting_done');
+
+  if(!list.length){c.innerHTML=`<div class="empty"><div class="empty-ico">✅</div><div class="empty-title">현재 대기 중인 작업 없음</div></div>`;return;}
+
+  c.innerHTML=list.map(o=>{
     const total=sumSz(o);
     const needsReceive=['fabric_ordered','partial_delivery'].includes(o.status);
     const hasCut=!!o.cuttingQty;
     const canCutEdit=['factory_received','cutting_done'].includes(o.status);
     const activeSizes=SZ.filter(s=>(o.sizes[s]||0)>0);
     const szHtml=activeSizes.map(s=>`<div class="fsize-item"><span class="fsize-lbl">${s}</span><span class="fsize-val ${(o.sizes[s]||0)===0?'zero':''}">${o.sizes[s]}</span></div>`).join('');
-    const ct=sumCut(o),diff=ct-total;
-    let actionHtml='';
-    if(needsReceive) actionHtml=`<button class="fbtn fbtn-confirm" onclick="fConfirmReceive('${o.id}')">✓ 원단 입고 확인</button>${o.partialDelivery?`<div style="font-size:13px;color:#e85800;text-align:center;margin-top:6px">⚠ 부분입고: ${o.partialNote||''}</div>`:''}`;
-    if(canCutEdit){
-      const cutFields=SZ.map(s=>{const ord=o.sizes[s]||0;return `<div class="fcut-item"><span class="fcut-lbl" style="${ord===0?'color:#bbb':''}">${s}</span><span class="fcut-sub" style="${ord===0?'color:#ddd':''}">${ord>0?'발주: '+ord+'장':'미발주'}</span><input type="number" class="fcut-input" id="fc-${o.id}-${s}" value="${hasCut?(o.cuttingQty[s]||0):(ord>0?ord:0)}" min="0" style="${ord===0?'border-color:#e0e0e0;color:#999':''}"></div>`;}).join('');
-      const diffHtml=hasCut&&ct>0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px;margin-bottom:8px">${diff>0?`+${diff}장 초과`:diff===0?'발주 수량 일치':`${diff}장 부족`}</div>`:'';
-      actionHtml=`<div class="fcut-section"><div class="fcut-title">${hasCut?'✂️ 재단 수량 (수정 가능)':'✂️ 재단 수량을 입력해 주세요'}</div><div class="fcut-grid">${cutFields}</div>${diffHtml}<button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">${hasCut?'재단 수량 수정':'재단 수량 저장'}</button></div>${hasCut?`<button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button><button class="fbtn" style="background:#fff5f5;color:#c42020;border:2px solid #fca5a5;margin-top:6px" onclick="fUndoCutting('${o.id}')">↩ 재단 취소 (실수 수정)</button>`:`<button class="fbtn" style="background:#fff5f5;color:#c42020;border:2px solid #fca5a5;margin-top:6px" onclick="fUndoReceive('${o.id}')">↩ 원단 입고 취소 (오입고·반품)</button>`}`;
-    }
     const s=seasons.find(x=>x.id===o.seasonId);
     const catalogProd=products.find(p=>p.seasonId===o.seasonId&&p.name===o.productName);
     const photoToShow=o.photo||(catalogProd?.photo)||null;
     const allColors=catalogProd?.colors||[];
-    if(hasCut){
-      const diffText=diff>0?`+${diff}장 초과`:diff<0?`${diff}장 부족`:'발주 일치';
-      return `<div class="fcard fcard-done" id="fcard-${o.id}">
-        <div class="fcard-done-row">
-          <div style="min-width:0">
-            <div class="fprod" style="font-size:17px;margin-bottom:2px">${o.productName}</div>
-            <div class="fmeta" style="margin-bottom:0">${o.color} · ${ct}장 재단 · ${diffText}</div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0">
-            <span class="fcard-done-badge">✂️ 재단완료</span>
-            <button class="fcard-expand-btn" onclick="toggleFcard('${o.id}')">펼치기 ▼</button>
-          </div>
+    const exp=!!window._fExp[o.id];
+
+    let bodyHtml='';
+    if(exp){
+      let actionHtml='';
+      if(needsReceive){
+        actionHtml=`<button class="fbtn fbtn-confirm" onclick="fConfirmReceive('${o.id}')">✓ 원단 입고 확인</button>
+          ${o.partialDelivery?`<div style="font-size:13px;color:#e85800;text-align:center;margin-top:6px">⚠ 부분입고: ${o.partialNote||''}</div>`:''}`;
+      }
+      if(canCutEdit){
+        const ct=sumCut(o),diff=ct-total;
+        const cutFields=activeSizes.map(s=>`<div class="fcut-item"><span class="fcut-lbl">${s}</span><span class="fcut-sub">발주: ${o.sizes[s]}장</span><input type="number" class="fcut-input" id="fc-${o.id}-${s}" value="${hasCut?(o.cuttingQty[s]||0):o.sizes[s]}" min="0"></div>`).join('');
+        const diffHtml=hasCut&&ct>0?`<div class="diff-box ${diff>0?'diff-over':'diff-under'}" style="margin-top:4px;margin-bottom:8px">${diff>0?`+${diff}장 초과`:diff===0?'발주 수량 일치':`${diff}장 부족`}</div>`:'';
+        actionHtml=`<div class="fcut-section">
+          <div class="fcut-title">${hasCut?'✂️ 재단 수량 (수정 가능)':'✂️ 재단 수량을 입력해 주세요'}</div>
+          <div class="fcut-grid">${cutFields}</div>${diffHtml}
+          <button class="fbtn fbtn-confirm" onclick="fConfirmCutting('${o.id}')">${hasCut?'재단 수량 수정':'재단 수량 저장'}</button>
         </div>
-        <div class="fcard-detail" id="fcard-detail-${o.id}">
-          ${photoToShow?`<img class="factory-photo" src="${photoToShow}">`:''}
-          ${s?`<div style="font-size:11px;color:#aaa;margin-bottom:4px;font-weight:600">📁 ${s.name}</div>`:''}
-          ${allColors.length?`<div style="margin-bottom:12px"><div style="font-size:11px;color:#aaa;font-weight:600;margin-bottom:5px">전체 색상</div><div class="color-chips">${allColors.map(c=>`<span class="color-chip">${c}</span>`).join('')}</div></div>`:''}
-          ${o.fabricCo?`<div style="font-size:13px;color:#888;margin-bottom:14px">원단: ${o.fabricCo} ${o.fabricName||''}</div>`:''}
-          <div class="fsizes">${szHtml}</div>
-          ${actionHtml}
-        </div>
-      </div>`;
+        ${hasCut?`<button class="fbtn" style="background:#f0f0f0;color:#666;margin-top:6px;font-size:13px;padding:12px" onclick="fUndoCutting('${o.id}')">↩ 재단 수량 취소</button>
+        <button class="fbtn fbtn-acc" onclick="fReqAccessory('${o.id}')">🧵 부자재 추가 요청하기</button>`:''}`;
+      }
+      if(o.status==='factory_received'){
+        actionHtml+=`<button class="fbtn" style="background:#f0f0f0;color:#666;margin-top:6px;font-size:13px;padding:12px" onclick="fUndoReceive('${o.id}')">↩ 원단 입고 취소</button>`;
+      }
+      bodyHtml=`
+        ${photoToShow?`<img class="factory-photo" src="${photoToShow}">`:''}
+        ${s?`<div style="font-size:11px;color:#aaa;margin-bottom:4px;font-weight:600">📁 ${s.name}</div>`:''}
+        ${allColors.length?`<div style="margin-bottom:12px"><div style="font-size:11px;color:#aaa;font-weight:600;margin-bottom:5px">전체 색상</div><div class="color-chips">${allColors.map(c=>`<span class="color-chip">${c}</span>`).join('')}</div></div>`:''}
+        ${o.fabricCo?`<div style="font-size:13px;color:#888;margin-bottom:14px">원단: ${o.fabricCo} ${o.fabricName||''}</div>`:''}
+        <div class="fsizes">${szHtml}</div>
+        ${actionHtml}`;
     }
-    return `<div class="fcard ${needsReceive||(canCutEdit&&!hasCut)?'needs':''}">
-      ${photoToShow?`<img class="factory-photo" src="${photoToShow}">`:''}
-      ${s?`<div style="font-size:11px;color:#aaa;margin-bottom:4px;font-weight:600">📁 ${s.name}</div>`:''}
-      <div class="fprod">${o.productName}</div>
-      <div class="fmeta">${o.color} · 총 ${total}장 · ${fmtDate(o.date)}</div>
-      ${allColors.length?`<div style="margin-bottom:12px"><div style="font-size:11px;color:#aaa;font-weight:600;margin-bottom:5px">전체 색상</div><div class="color-chips">${allColors.map(c=>`<span class="color-chip">${c}</span>`).join('')}</div></div>`:''}
-      ${o.fabricCo?`<div style="font-size:13px;color:#888;margin-bottom:14px">원단: ${o.fabricCo} ${o.fabricName||''}</div>`:''}
-      <div class="fsizes">${szHtml}</div>
-      ${actionHtml}
+
+    return `<div class="fcard${needsReceive||(canCutEdit&&!hasCut)?' needs':''}" id="fcard-${o.id}">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;gap:10px" onclick="toggleFcard('${o.id}')">
+        <div style="flex:1;min-width:0">
+          <div class="fprod" style="margin-bottom:3px">${o.productName}</div>
+          <div class="fmeta">${o.color} · 총 ${total}장 · ${fmtDate(o.date)}${o.factory?` · 🏭 ${o.factory}`:''}</div>
+        </div>
+        <span style="font-size:20px;color:#ccc;flex-shrink:0">${exp?'▲':'▼'}</span>
+      </div>
+      ${bodyHtml}
     </div>`;
   }).join('');
 }
-function setFactoryFilter(f){ factoryFilter=f; renderFactory(); }
-function setFactoryTab(name){ curFactoryName=name; factoryFilter='all'; renderFactory(); }
+
+function setFactoryTab(name){
+  curFactoryName=name;
+  window._fExp={};
+  renderFactory();
+}
+function setFactoryFilter(f){
+  factoryFilter=f;
+  renderFactory();
+}
+function toggleFcard(id){
+  window._fExp[id]=!window._fExp[id];
+  renderFactory();
+}
 function fUndoCutting(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  if(!confirm(`${o.productName} ${o.color}\n재단 완료를 취소하시겠습니까?\n재단 수량이 초기화되고 '공장입고' 상태로 돌아갑니다.`)) return;
-  o.cuttingQty=null; o.status='factory_received'; save(); renderFactory();
+  if(!confirm('재단 수량을 삭제하고 공장 입고 상태로 되돌리겠습니까?')) return;
+  o.cuttingQty=null; o.status='factory_received';
+  save(); renderFactory();
 }
 function fUndoReceive(id){
   const o=orders.find(x=>x.id===id); if(!o) return;
-  if(!confirm(`${o.productName} ${o.color}\n원단 입고 확인을 취소하시겠습니까?\n오입고·반품 등으로 원단이 다시 나가는 경우 사용하세요.\n'원단발주' 상태로 돌아갑니다.`)) return;
-  o.status=o.partialDelivery?'partial_delivery':'fabric_ordered';
-  o.factoryDate=null;
+  if(!confirm('원단 입고 확인을 취소하겠습니까?')) return;
+  o.status='fabric_ordered'; o.factoryDate=null;
   save(); renderFactory();
 }
 function fConfirmReceive(id){
@@ -1605,25 +1823,100 @@ function fReqAccessory(id){
   o.accAlertReq=true; o.accAlertDone=false; o.accAlertNote=note||'부자재 추가 요청'; save(); renderFactory();
   alert('✅ 부자재 추가 요청이 전송되었습니다.');
 }
-function toggleFcard(id){
-  const d=document.getElementById('fcard-detail-'+id);
-  const b=document.querySelector('#fcard-'+id+' .fcard-expand-btn');
-  if(!d||!b) return;
-  const isOpen=d.classList.toggle('open');
-  b.textContent=isOpen?'접기 ▲':'펼치기 ▼';
-}
 
 // ══════════════════════════════════════════
 // CATALOG
 // ══════════════════════════════════════════
+function openMigrateProducts(){
+  if(!curSeasonId) return;
+  const seasonProds=products.filter(p=>p.seasonId===curSeasonId);
+  if(!seasonProds.length){alert('이 시즌에 등록된 상품이 없습니다.');return;}
+  const others=seasons.filter(s=>s.id!==curSeasonId);
+  if(!others.length){alert('이동할 수 있는 다른 시즌이 없습니다.');return;}
+  const opts=others.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  sheet('📦 상품 시즌 이동',`
+    <div style="font-size:13px;color:#666;margin-bottom:14px">현재 시즌의 상품 <b>${seasonProds.length}개</b>를 다른 시즌으로 이동합니다.</div>
+    <div class="frow"><label class="flabel">이동할 시즌</label><select class="finput" id="migrateTarget">${opts}</select></div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmMigrateProducts()">이동</button></div>`);
+}
+function confirmMigrateProducts(){
+  const targetId=document.getElementById('migrateTarget').value;
+  const target=seasons.find(s=>s.id===targetId); if(!target) return;
+  const count=products.filter(p=>p.seasonId===curSeasonId).length;
+  // products 배열 직접 순회해서 mutation — confirm() 블로킹 없음
+  products.forEach(p=>{ if(p.seasonId===curSeasonId) p.seasonId=targetId; });
+  save('products'); closeSheet(); renderCatalog();
+  alert(`✅ ${count}개 상품을 '${target.name}'으로 이동했습니다.`);
+}
+
+function restoreFromOrders(){
+  if(!curSeasonId) return;
+  const seasonOrds = orders.filter(o => o.seasonId === curSeasonId);
+  if(!seasonOrds.length){ alert('이 시즌에 발주 기록이 없습니다.'); return; }
+
+  // 제품명별로 컬러 모으기
+  const map = {};
+  seasonOrds.forEach(o => {
+    const name = (o.productName || '').trim();
+    if(!name) return;
+    if(!map[name]) map[name] = new Set();
+    if(o.color && o.color.trim()) map[name].add(o.color.trim());
+  });
+
+  const names = Object.keys(map);
+  if(!names.length){ alert('복원할 상품 정보가 없습니다.'); return; }
+
+  // 이미 등록된 상품 제외
+  const existing = products.filter(p => p.seasonId === curSeasonId).map(p => p.name);
+  const toAdd = names.filter(n => !existing.includes(n));
+
+  if(!toAdd.length){
+    alert('이미 모든 상품이 등록되어 있습니다.'); return;
+  }
+
+  const preview = toAdd.map(n => `· ${n} (${[...map[n]].join(', ')||'색상 없음'})`).join('\n');
+  if(!confirm(`다음 상품을 카탈로그에 추가할까요?\n\n${preview}\n\n※ 사진은 따로 등록 필요`)) return;
+
+  toAdd.forEach(name => {
+    products.push({
+      id: uid(),
+      seasonId: curSeasonId,
+      name,
+      photo: null,
+      colors: [...map[name]]
+    });
+  });
+
+  save('products');
+  renderCatalog();
+  alert(`✅ ${toAdd.length}개 상품 복원 완료!\n사진은 각 상품 편집(✏️)에서 추가해주세요.`);
+}
+
 function renderCatalog(){
   const c=document.getElementById('catalogBody');
-  if(!curSeasonId){c.innerHTML='';return;}
+  if(!curSeasonId){
+    c.innerHTML=`<div class="empty"><div class="empty-ico">📁</div><div class="empty-title">시즌을 선택해주세요</div><button class="btn btn-ghost" style="margin-top:12px;width:auto;padding:10px 20px" onclick="exitSeason()">← 시즌 목록으로</button></div>`;
+    return;
+  }
   const seasonProds=products.filter(p=>p.seasonId===curSeasonId);
-  const canEdit=curRole==='store'||curRole==='designer';
-  let html=canEdit?`<button class="add-season-btn" onclick="openNewProduct()" style="margin-bottom:12px">+ 상품 추가</button>`:'';
+  const canEdit=curRole!=='factory';
+  const addBtn=document.getElementById('catalogAddBtn');
+  if(addBtn) addBtn.style.display=canEdit?'':'none';
+  let html=canEdit&&seasonProds.length?`<div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="backup-btn" onclick="openMigrateProducts()">📦 시즌 이동</button></div>`:'';
   if(!seasonProds.length){
-    html+=`<div class="empty"><div class="empty-ico">👗</div><div class="empty-title">등록된 상품 없음</div><div class="empty-desc">시즌 상품과 색상을 등록해두면<br>공장에서 확인할 수 있습니다</div></div>`;
+    const seasonOrderCount = orders.filter(o=>o.seasonId===curSeasonId).length;
+    const recoverBtn = canEdit && seasonOrderCount
+      ? `<button class="btn btn-dark" style="width:100%;margin-top:10px;font-size:14px;padding:14px"
+           onclick="restoreFromOrders()">
+           🔄 발주 기록에서 상품 자동 복원 (${seasonOrderCount}건)
+         </button>`
+      : '';
+    html+=`<div class="empty">
+      <div class="empty-ico">👗</div>
+      <div class="empty-title">등록된 상품 없음</div>
+      <div class="empty-desc">시즌 상품과 색상을 등록해두면<br>공장에서 확인할 수 있습니다</div>
+      ${recoverBtn}
+    </div>`;
     c.innerHTML=html; return;
   }
   html+=seasonProds.map(p=>{
@@ -1633,7 +1926,7 @@ function renderCatalog(){
       ${photoHtml}
       <div class="cat-info">
         <div class="cat-name">${p.name}</div>
-        ${p.factory?`<div style="font-size:11px;color:#888;margin-top:2px;margin-bottom:3px">🏭 ${p.factory}</div>`:''}
+        ${p.factory?`<div style="font-size:11px;color:#aaa;font-weight:600;margin-top:2px;margin-bottom:4px">🏭 ${p.factory}</div>`:''}
         <div class="color-chips" style="margin-top:4px">${chips||'<span style="font-size:12px;color:#bbb">색상 미등록</span>'}</div>
       </div>
       ${canEdit?`<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:6px">
@@ -1648,10 +1941,17 @@ function renderCatalog(){
 function openNewProduct(){
   if(!curSeasonId){alert('시즌을 먼저 선택해주세요');return;}
   pendingProductPhoto=null; productColors=[];
-  const pFactOpts=FACTORIES.map(f=>`<option>${f}</option>`).join('');
   sheet('+ 상품 추가',`
     <div class="frow"><label class="flabel">상품명</label><input type="text" class="finput" id="pName" placeholder="예: 베리씬가디건"></div>
-    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="pFactory"><option value="">선택</option>${pFactOpts}</select></div>
+    <div class="frow"><label class="flabel">담당 공장</label>
+      <select class="finput" id="pFactory">
+        <option value="">미지정</option>
+        <option value="청와대">청와대</option>
+        <option value="다복사">다복사</option>
+        <option value="다성니트">다성니트</option>
+        <option value="씨엠모자">씨엠모자</option>
+      </select>
+    </div>
     <div class="frow"><label class="flabel">상품 사진 <span style="color:#aaa;font-weight:400;font-size:11px">(선택 · 확인용)</span></label>
       <div id="prodPhotoPreview"></div>
       <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 사진 추가<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleProductPhoto(this)"></label>
@@ -1670,20 +1970,31 @@ function openNewProduct(){
 function saveNewProduct(){
   const name=document.getElementById('pName').value.trim();
   if(!name){alert('상품명을 입력해주세요');return;}
-  const factory=document.getElementById('pFactory')?.value||'';
-  products.push({id:uid(),seasonId:curSeasonId,name,factory,photo:pendingProductPhoto||null,colors:[...productColors]});
+  if(!curSeasonId){alert('오류: 시즌이 선택되지 않았습니다.\n뒤로가서 시즌을 다시 선택해주세요.');return;}
+  const pFactory=document.getElementById('pFactory')?.value||'';
+  const savedSeasonId=curSeasonId;
+  const newP={id:uid(),seasonId:savedSeasonId,name,factory:pFactory,photo:pendingProductPhoto||null,colors:[...productColors]};
+  products.push(newP);
   pendingProductPhoto=null; productColors=[];
-  save(); closeSheet(); renderCatalog();
+  closeSheet();
+  renderCatalog(); // save() 전에 먼저 렌더 — Firebase 리스너 타이밍 이슈 방지
+  save('products');
+  // Firebase 리스너가 덮어썼을 경우 대비 재렌더
+  setTimeout(()=>{
+    if(!products.find(p=>p.id===newP.id)) products.push(newP);
+    renderCatalog();
+    alert(`✅ '${name}' 상품이 등록되었습니다.`);
+  },400);
 }
 
 function editProduct(id){
   const p=products.find(x=>x.id===id); if(!p) return;
   pendingProductPhoto=null; productColors=[...p.colors];
   const photoHtml=p.photo?`<img class="photo-preview" src="${p.photo}">`:'';
-  const pEditFactOpts=FACTORIES.map(f=>`<option${(p.factory||'')===f?' selected':''}>${f}</option>`).join('');
+  const factoryOpts=['','청와대','다복사','다성니트','씨엠모자'].map(f=>`<option value="${f}" ${p.factory===f?'selected':''}>${f||'미지정'}</option>`).join('');
   sheet('✏️ 상품 편집',`
     <div class="frow"><label class="flabel">상품명</label><input type="text" class="finput" id="pEditName" value="${p.name}"></div>
-    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="pEditFactory"><option value="">선택</option>${pEditFactOpts}</select></div>
+    <div class="frow"><label class="flabel">담당 공장</label><select class="finput" id="pEditFactory">${factoryOpts}</select></div>
     <div class="frow"><label class="flabel">상품 사진</label>
       <div id="prodPhotoPreview">${photoHtml}</div>
       <label class="photo-upload-btn" style="font-size:13px;padding:10px;margin-top:6px">📷 ${p.photo?'사진 변경':'사진 추가'}<input type="file" accept="image/*" capture="environment" style="display:none" onchange="handleProductPhoto(this)"></label>
@@ -1703,23 +2014,26 @@ function saveEditProduct(id){
   const name=document.getElementById('pEditName').value.trim();
   if(!name){alert('상품명을 입력해주세요');return;}
   p.name=name; p.colors=[...productColors];
-  p.factory=document.getElementById('pEditFactory')?.value||p.factory||'';
+  p.factory=document.getElementById('pEditFactory')?.value||'';
   if(pendingProductPhoto){p.photo=pendingProductPhoto;pendingProductPhoto=null;}
-  save(); closeSheet(); renderCatalog();
+  save('products'); closeSheet(); renderCatalog();
 }
 
 function deleteProduct(id){
   if(!confirm('이 상품을 카탈로그에서 삭제하시겠습니까?')) return;
   products=products.filter(p=>p.id!==id);
-  save(); renderCatalog();
+  save('products'); renderCatalog();
 }
 
 function handleProductPhoto(input){
   const file=input.files[0]; if(!file) return;
-  resizeImage(file,url=>{
+  const p=document.getElementById('prodPhotoPreview');
+  if(p) p.innerHTML=`<div style="padding:12px;color:#aaa;font-size:13px">⏳ 업로드 중...</div>`;
+  uploadToCloudinary(file).then(url=>{
     pendingProductPhoto=url;
-    const p=document.getElementById('prodPhotoPreview');
     if(p) p.innerHTML=`<img class="photo-preview" src="${url}">`;
+  }).catch(()=>{
+    if(p) p.innerHTML=`<div style="padding:12px;color:#e53;font-size:13px">❌ 업로드 실패. 다시 시도해주세요.</div>`;
   });
 }
 
@@ -1858,26 +2172,26 @@ load();        // 로컬 캐시로 즉시 시작
 rawShow('role'); // 캐시 데이터로 바로 역할 선택 화면 표시
 
 // Firebase 실시간 동기화
-let fbReady = false, productsInitialized = false;
+let fbReady = false;
 dbRef.on('value', snapshot => {
   const data = snapshot.val();
 
   if(data && (data.seasons || data.orders)){
+    // Firebase에서 받은 데이터엔 사진이 없으므로 로컬 사진 보존
+    const localOrders = JSON.parse(localStorage.getItem('jj_orders')||'[]');
+    const localPhotos = {};
+    localOrders.forEach(o=>{ if(o.photo) localPhotos[o.id]=o.photo; });
+    const localProds = JSON.parse(localStorage.getItem('jj_products')||'[]');
+    const localProdPhotos = {};
+    localProds.forEach(p=>{ if(p.photo) localProdPhotos[p.id]=p.photo; });
+
     seasons = data.seasons ? Object.values(data.seasons).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)) : [];
     orders  = data.orders  ? Object.values(data.orders).sort((a,b)=>new Date(b.date)-new Date(a.date)) : [];
     products = data.products ? Object.values(data.products) : [];
 
-    // 최초 1회: 26여름 시즌에 기본 상품 카탈로그 자동 등록
-    if(!data.products && !productsInitialized && seasons.length){
-      productsInitialized = true;
-      const summerSeason = seasons.find(s => s.name.includes('여름'));
-      if(summerSeason){
-        products = getDefault26Products(summerSeason.id);
-        const pObj={};
-        products.forEach(p=>pObj[p.id]=p);
-        dbRef.child('products').set(pObj);
-      }
-    }
+    // 로컬에 있던 사진 복원
+    orders.forEach(o=>{ if(localPhotos[o.id]) o.photo=localPhotos[o.id]; });
+    products.forEach(p=>{ if(localProdPhotos[p.id]) p.photo=localProdPhotos[p.id]; });
 
     localStorage.setItem('jj_seasons', JSON.stringify(seasons));
     localStorage.setItem('jj_orders',  JSON.stringify(orders));
@@ -1900,6 +2214,18 @@ dbRef.on('value', snapshot => {
   fbReady = true;
   setSyncStatus('synced');
   refreshCurrentView();
+
+  // Firebase 로드 완료 후 대기 중이던 save 실행
+  if(pendingSave){ const w=pendingSave; pendingSave=null; save(w); }
+
+  // 자동완성 외부 클릭 닫기 (Firebase 콜백 후 DOM 준비된 시점에 등록)
+  if(!window._acListenerAdded){
+    window._acListenerAdded = true;
+    document.addEventListener('click', e => {
+      const wrap = document.querySelector('.ac-wrap');
+      if(wrap && !wrap.contains(e.target)) acClose();
+    });
+  }
 
 }, err => {
   console.warn('Firebase 연결 오류, 로컬 캐시 사용:', err.message);
