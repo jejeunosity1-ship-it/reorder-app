@@ -664,7 +664,7 @@ const ROLE_INFO = {
 };
 
 // ── Cloudinary ──
-const CLOUDINARY_CLOUD = 'DGGGXRWNJ';
+const CLOUDINARY_CLOUD = 'dgggxrwnj';
 const CLOUDINARY_PRESET = 'fzbgboej';
 
 let seasons=[], orders=[], products=[], curRole=null, curSeasonId=null, curOrderId=null, curFilter='all', curSubTab='orders';
@@ -848,7 +848,9 @@ function selectRole(role){
   localStorage.setItem('jj_role', role);
 
   if(role === 'factory'){
-    // 공장은 바로 공장모드
+    // 공장은 바로 공장모드 — 청와대 + 입고대기 기본값
+    curFactoryName = '청와대';
+    factoryFilter = 'pending';
     document.getElementById('factoryBar').style.display='';
     renderFactory();
     rawShow('factory');
@@ -2233,5 +2235,3 @@ dbRef.on('value', snapshot => {
   fbReady = true;
 });
 </script>
-</body>
-</html>
