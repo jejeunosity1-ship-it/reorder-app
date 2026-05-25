@@ -687,9 +687,20 @@ const firebaseConfig = {
   messagingSenderId: "1005352974921",
   appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-const dbRef = db.ref('jj');
+let db, dbRef;
+try {
+  if(typeof firebase === 'undefined') throw new Error('Firebase 스크립트 로드 실패');
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  dbRef = db.ref('jj');
+} catch(e) {
+  console.warn('Firebase 초기화 실패, 로컬 전용 모드:', e.message);
+  dbRef = {
+    on: (_evt, _cb, errCb) => { if(errCb) errCb(new Error('오프라인')); },
+    child: () => ({ set: () => Promise.resolve() }),
+    set: () => Promise.resolve()
+  };
+}
 
 function load(){
   seasons=JSON.parse(localStorage.getItem('jj_seasons')||'[]');
@@ -718,15 +729,15 @@ function save(what='all'){
     promises.push(dbRef.child('seasons').set(sObj));
   }
   if(what==='all'||what==='orders'){
-    // 사진(base64)은 Firebase 용량 초과 방지를 위해 로컬 전용 — Firebase엔 제외
+    // Cloudinary URL은 짧은 문자열이므로 Firebase에 포함해서 저장 — 기기간 사진 공유
     const oObj={};
-    orders.forEach(o=>{ const {photo,...rest}=o; oObj[o.id]=rest; });
+    orders.forEach(o=>{ oObj[o.id]=o; });
     promises.push(dbRef.child('orders').set(oObj));
   }
   if(what==='all'||what==='products'){
-    // 상품 사진도 동일하게 로컬 전용
+    // 상품 사진도 Cloudinary URL이므로 Firebase에 포함
     const pObj={};
-    products.forEach(p=>{ const {photo,...rest}=p; pObj[p.id]=rest; });
+    products.forEach(p=>{ pObj[p.id]=p; });
     promises.push(dbRef.child('products').set(pObj));
   }
 
@@ -2230,21 +2241,10 @@ dbRef.on('value', snapshot => {
   const data = snapshot.val();
 
   if(data && (data.seasons || data.orders)){
-    // Firebase에서 받은 데이터엔 사진이 없으므로 로컬 사진 보존
-    const localOrders = JSON.parse(localStorage.getItem('jj_orders')||'[]');
-    const localPhotos = {};
-    localOrders.forEach(o=>{ if(o.photo) localPhotos[o.id]=o.photo; });
-    const localProds = JSON.parse(localStorage.getItem('jj_products')||'[]');
-    const localProdPhotos = {};
-    localProds.forEach(p=>{ if(p.photo) localProdPhotos[p.id]=p.photo; });
-
+    // Cloudinary URL이 Firebase에 저장되므로 그대로 사용
     seasons = data.seasons ? Object.values(data.seasons).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)) : [];
     orders  = data.orders  ? Object.values(data.orders).sort((a,b)=>new Date(b.date)-new Date(a.date)) : [];
     products = data.products ? Object.values(data.products) : [];
-
-    // 로컬에 있던 사진 복원
-    orders.forEach(o=>{ if(localPhotos[o.id]) o.photo=localPhotos[o.id]; });
-    products.forEach(p=>{ if(localProdPhotos[p.id]) p.photo=localProdPhotos[p.id]; });
 
     localStorage.setItem('jj_seasons', JSON.stringify(seasons));
     localStorage.setItem('jj_orders',  JSON.stringify(orders));
