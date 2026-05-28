@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>원가 관리 — JEJEUNOSITY</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f2f2f2;color:#111;min-height:100vh;font-size:14px}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+
+/* ── ROLE SELECT ── */
+.role-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:#f2f2f2}
+.role-logo{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px;text-align:center}
+.role-sub{font-size:11px;color:#bbb;letter-spacing:2px;margin-bottom:36px;text-align:center}
+.role-grid{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px}
+.role-btn{background:#fff;border:1.5px solid #e5e5e5;border-radius:14px;padding:16px 20px;display:flex;flex-direction:row;align-items:center;gap:14px;cursor:pointer;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.role-ico{font-size:30px;line-height:1;flex-shrink:0}
+.role-text{display:flex;flex-direction:column;gap:2px}
+.role-btn:active{transform:scale(.96);box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.role-btn.owner{border-color:#333}
+.role-btn.dkids{border-color:#dbeafe}
+.role-btn.dwomen{border-color:#fce7f3}
+.role-btn.factory{border-color:#fef9c3}
+.role-name{font-size:15px;font-weight:800}
+.role-desc{font-size:11px;color:#aaa;line-height:1.4}
+
+/* ── HEADER ── */
+.hdr{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 16px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.hdr-logo{font-size:16px;font-weight:800;letter-spacing:-.5px}
+.role-tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:2px;display:inline-block}
+.rt-owner{background:#111;color:#fff}
+.rt-dkids{background:#dbeafe;color:#1a56cc}
+.rt-dwomen{background:#fce7f3;color:#a01860}
+.rt-factory{background:#fef9c3;color:#926800}
+
+/* ── OWN HEADER (서브화면용) ── */
+.own-hdr{background:#fff;border-bottom:1px solid #e5e5e5;padding:0 14px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.back-btn{background:none;border:none;font-size:14px;color:#111;cursor:pointer;display:flex;align-items:center;gap:3px;padding:4px 0;font-weight:600;-webkit-tap-highlight-color:transparent}
+
+/* ── NAV ── */
+.nav{background:#fff;border-top:1px solid #e5e5e5;position:fixed;bottom:0;left:0;right:0;display:flex;height:58px;z-index:100}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;color:#bbb;transition:color .15s;-webkit-tap-highlight-color:transparent}
+.nav-item.on{color:#111}
+.nav-icon{font-size:19px;line-height:1}
+.nav-lbl{font-size:10px;font-weight:500}
+
+/* ── MAIN CONTENT ── */
+.main{padding:14px 14px 80px;max-width:430px;margin:0 auto}
+.screen{display:none}
+.screen.on{display:block}
+.page-title{font-size:20px;font-weight:800;margin-bottom:14px}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:68px;right:14px;width:50px;height:50px;border-radius:50%;background:#111;color:#fff;border:none;font-size:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.25);z-index:99;transition:transform .15s;-webkit-tap-highlight-color:transparent}
+.fab:active{transform:scale(.93)}
+
+/* ── SEASON CARDS ── */
+.season-card{background:#fff;border-radius:14px;border:1px solid #e5e5e5;padding:18px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s;display:flex;align-items:center;gap:14px;-webkit-tap-highlight-color:transparent}
+.season-card:active{box-shadow:0 2px 10px rgba(0,0,0,.1)}
+.season-ico{width:48px;height:48px;border-radius:12px;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.season-info{flex:1;min-width:0}
+.season-name{font-size:17px;font-weight:800;margin-bottom:4px}
+.season-meta{font-size:12px;color:#aaa;margin-bottom:8px}
+.season-prog-bar{height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden}
+.season-prog-fill{height:100%;background:#111;border-radius:3px;transition:width .4s}
+.season-prog-label{font-size:11px;color:#aaa;margin-top:4px}
+.add-btn-dashed{background:#fff;border:2px dashed #ddd;border-radius:14px;padding:18px;text-align:center;cursor:pointer;color:#aaa;font-size:14px;font-weight:600;margin-bottom:10px;-webkit-tap-highlight-color:transparent}
+
+/* ── PRODUCT CARDS ── */
+.prod-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;margin-bottom:10px;padding:14px;cursor:pointer;transition:box-shadow .15s;-webkit-tap-highlight-color:transparent}
+.prod-card:active{box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.prod-name{font-size:15px;font-weight:700;margin-bottom:2px}
+.prod-en{font-size:12px;color:#aaa;margin-bottom:8px}
+
+/* ── BADGES ── */
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.b-gray{background:#f0f0f0;color:#777}
+.b-orange{background:#fff0e6;color:#c44d00}
+.b-green{background:#edfaf1;color:#1a7a3c}
+.b-blue{background:#e8f0fe;color:#1a56cc}
+
+/* ── CHIPS ── */
+.chip{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.ch-gray{background:#f0f0f0;color:#555}
+.ch-blue{background:#dbeafe;color:#1a56cc}
+.ch-pink{background:#fce7f3;color:#a01860}
+.ch-yellow{background:#fef9c3;color:#926800}
+.ch-green{background:#edfaf1;color:#1a7a3c}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.tab{padding:5px 13px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;border:1px solid #e5e5e5;background:#fff;color:#888;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.tab.on{background:#111;color:#fff;border-color:#111}
+
+/* ── FORM ── */
+.fsec{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:15px;margin-bottom:10px}
+.fsec-title{font-size:13px;font-weight:700;margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid #f2f2f2;display:flex;align-items:center;justify-content:space-between}
+.frow{margin-bottom:11px}
+.frow:last-child{margin-bottom:0}
+.flabel{font-size:12px;font-weight:500;color:#555;margin-bottom:5px;display:block}
+.finput{width:100%;border:1px solid #e5e5e5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;background:#fff;color:#111;-webkit-appearance:none;transition:border-color .15s}
+.finput:focus{border-color:#111}
+.finput[readonly]{background:#f7f7f7;color:#888}
+select.finput{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;-webkit-appearance:none;appearance:none}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ── ITEM ROWS (원단/부자재) ── */
+.item-row{background:#f9f9f9;border-radius:10px;border:1.5px solid #e5e5e5;padding:12px;margin-bottom:8px}
+.item-row-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.item-row-title{font-size:13px;font-weight:700;color:#555}
+.item-row-subtotal{font-size:13px;font-weight:800;color:#111;margin-left:auto;margin-right:8px}
+.remove-btn{background:#fee2e2;border:none;border-radius:6px;color:#c42020;font-size:12px;font-weight:700;padding:5px 9px;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent}
+.add-row-btn{width:100%;padding:10px;border:2px dashed #ddd;border-radius:10px;background:#fff;color:#aaa;font-size:13px;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.add-row-btn:active{background:#f8f8f8}
+
+/* ── COST SUMMARY BOX ── */
+.cost-box{background:#111;border-radius:14px;padding:16px;margin-bottom:10px;color:#fff}
+.cost-box-title{font-size:11px;font-weight:700;color:#666;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #222}
+.cost-row:last-child{border:none}
+.cost-key{font-size:12px;color:#aaa}
+.cost-val{font-size:13px;font-weight:700;color:#fff}
+.cost-row.big .cost-key{font-size:13px;color:#eee;font-weight:600}
+.cost-row.big .cost-val{font-size:16px;font-weight:800;color:#4ade80}
+.cost-pair{display:flex;gap:8px;align-items:baseline}
+.cost-sub{font-size:11px;color:#555;font-weight:500}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:10px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .15s;-webkit-appearance:none;width:100%;-webkit-tap-highlight-color:transparent}
+.btn:active{opacity:.75}
+.btn-dark{background:#111;color:#fff}
+.btn-ghost{background:#f3f3f3;color:#111;border:1px solid #e5e5e5}
+.btn-green{background:#1a7a3c;color:#fff}
+.btn-blue{background:#1a56cc;color:#fff}
+.btn-orange{background:#e85800;color:#fff}
+.btn-sm{padding:8px 13px;font-size:13px;border-radius:8px;width:auto}
+.btnrow{display:flex;gap:8px;margin-top:10px}
+.btnrow .btn{flex:1}
+
+/* ── SETTINGS ── */
+.set-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.set-row:last-child{border:none}
+.set-key{font-size:14px;font-weight:500}
+.set-desc{font-size:11px;color:#aaa;margin-top:2px}
+.set-input{border:1px solid #e5e5e5;border-radius:7px;padding:7px 10px;font-size:14px;text-align:right;width:100px;outline:none;-webkit-appearance:none;color:#111}
+.set-input:focus{border-color:#111}
+
+/* ── SUMMARY TABLE ── */
+.sum-wrap{background:#fff;border-radius:12px;border:1px solid #e5e5e5;overflow:hidden;margin-bottom:10px}
+.sum-hdr{background:#f8f8f8;border-bottom:1px solid #e5e5e5;display:grid;grid-template-columns:2fr 1fr 1fr 1fr}
+.sum-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;border-bottom:1px solid #f5f5f5;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sum-row:last-child{border:none}
+.sum-row:active{background:#fafafa}
+.sum-cell{padding:9px 10px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sum-cell.num{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.sum-hdr .sum-cell{font-size:11px;font-weight:700;color:#888}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:middle;flex-shrink:0}
+.sd-gray{background:#bbb}
+.sd-orange{background:#e85800}
+.sd-green{background:#1a7a3c}
+
+/* ── TAG CHIPS ── */
+.tag-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.tag-chip{font-size:12px;font-weight:600;padding:4px 10px;border-radius:12px;background:#f0f0f0;color:#555;display:inline-flex;align-items:center;gap:5px}
+.tag-chip-rm{background:none;border:none;color:#aaa;cursor:pointer;font-size:14px;padding:0;line-height:1}
+.tag-input-row{display:flex;gap:6px;margin-top:8px}
+.tag-input{flex:1;border:1px solid #e5e5e5;border-radius:8px;padding:9px 10px;font-size:14px;outline:none;-webkit-appearance:none}
+.tag-input:focus{border-color:#111}
+.tag-add-btn{background:#111;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;font-weight:700;flex-shrink:0}
+
+/* ── SHEET ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end}
+.overlay.on{display:flex}
+.sheet{background:#fff;border-radius:20px 20px 0 0;padding:18px 15px 36px;width:100%;max-height:90vh;overflow-y:auto}
+.sheet-handle{width:34px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 15px}
+.sheet-title{font-size:17px;font-weight:800;margin-bottom:15px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+
+/* ── MISC ── */
+.empty{text-align:center;padding:48px 20px;color:#bbb}
+.empty-ico{font-size:38px;margin-bottom:11px}
+.empty-title{font-size:16px;font-weight:700;color:#999;margin-bottom:5px}
+.empty-desc{font-size:13px;line-height:1.5}
+.notebox{background:#f7f7f7;border-radius:8px;padding:10px 12px;font-size:12px;color:#777;line-height:1.5}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.info-item{background:#f8f8f8;border-radius:8px;padding:10px 12px}
+.info-label{font-size:11px;color:#aaa;margin-bottom:2px}
+.info-value{font-size:13px;font-weight:700}
+#syncDot{font-size:11px;color:#aaa}
+/* ── SIZE USAGE GRID ── */
+.sz-usage-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.sz-usage-item{display:flex;flex-direction:column;align-items:center;gap:3px}
+.sz-usage-lbl{font-size:11px;font-weight:700;color:#926800}
+.sz-usage-input{width:100%;border:1.5px solid #fcd34d;border-radius:7px;padding:8px 3px;font-size:15px;font-weight:700;text-align:center;background:#fff;outline:none;-webkit-appearance:none;color:#111}
+.sz-usage-input:focus{border-color:#d97706}
+.sz-avg-box{background:#fefce8;border-radius:8px;padding:8px 12px;font-size:13px;font-weight:700;color:#926800;text-align:center;margin-top:6px}
+/* ── PRINT ── */
+@media print{
+  .hdr,.nav,.fab,.own-hdr,.btnrow,.btn,.back-btn,#overlay{display:none!important}
+  body{background:#fff}
+  .screen{display:block!important}
+  .cost-box{background:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .main{padding:0!important}
+}
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ══════════ ROLE SELECT ══════════ -->
+<div id="screen-role" class="screen on">
+  <div class="role-screen">
+    <div class="role-logo">JEJEUNOSITY</div>
+    <div class="role-sub">COST MANAGEMENT</div>
+    <div class="role-grid">
+      <div class="role-btn owner" onclick="selectRole('owner')">
+        <span class="role-ico">👑</span>
+        <div class="role-text"><span class="role-name">대표</span><span class="role-desc">전체 조회·수정·상품추가·확정·내보내기</span></div>
+      </div>
+      <div class="role-btn dkids" onclick="selectRole('designer_kids')">
+        <span class="role-ico">👶</span>
+        <div class="role-text"><span class="role-name">아동복 디자이너</span><span class="role-desc">아동복 원가 항목 입력</span></div>
+      </div>
+      <div class="role-btn dwomen" onclick="selectRole('designer_women')">
+        <span class="role-ico">👗</span>
+        <div class="role-text"><span class="role-name">성인복 디자이너</span><span class="role-desc">성인복 원가 항목 입력</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MAIN HEADER ══════════ -->
+<div class="hdr" id="mainHdr" style="display:none">
+  <div>
+    <div class="hdr-logo">원가 관리</div>
+    <div id="roleTag"></div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <span id="syncDot"></span>
+    <button class="btn btn-ghost btn-sm" onclick="changeRole()" style="width:auto;font-size:12px">역할변경</button>
+  </div>
+</div>
+
+<!-- ══════════ BOTTOM NAV ══════════ -->
+<div class="nav" id="mainNav" style="display:none"></div>
+
+<!-- ══════════ FAB ══════════ -->
+<button class="fab" id="fab" style="display:none">+</button>
+
+<!-- ══════════ SCREEN: 시즌 목록 ══════════ -->
+<div class="screen main" id="screen-seasons" style="display:none">
+  <div id="seasonList"></div>
+</div>
+
+<!-- ══════════ SCREEN: 상품 목록 ══════════ -->
+<div class="screen" id="screen-products" style="display:none">
+  <div class="own-hdr">
+    <button class="back-btn" onclick="exitToSeasons()">← 시즌</button>
+    <span id="prodHdrTitle" style="font-weight:800;font-size:15px"></span>
+    <div style="width:54px"></div>
+  </div>
+  <div class="main" style="padding-top:14px">
+    <div class="tabs" id="prodTabs">
+      <div class="tab on" data-filter="all" onclick="setProdFilter('all',this)">전체</div>
+      <div class="tab" data-filter="kids" onclick="setProdFilter('kids',this)">아동복</div>
+      <div class="tab" data-filter="women" onclick="setProdFilter('women',this)">성인복</div>
+    </div>
+    <div id="productList"></div>
+  </div>
+</div>
+
+<!-- ══════════ SCREEN: 원가 입력 ══════════ -->
+<div class="screen" id="screen-cost" style="display:none">
+  <div class="own-hdr">
+    <button class="back-btn" onclick="exitToProducts()">← 목록</button>
+    <span id="costHdrTitle" style="font-weight:800;font-size:14px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">원가 입력</span>
+    <button id="costDelBtn" class="btn btn-sm" onclick="deleteProduct()" style="width:auto;background:#fee2e2;color:#c42020;border:none;display:none">삭제</button>
+  </div>
+  <div class="main" id="costBody" style="padding-top:14px;padding-bottom:24px"></div>
+</div>
+
+<!-- ══════════ SCREEN: 현황 ══════════ -->
+<div class="screen main" id="screen-summary" style="display:none">
+  <div class="page-title">전체 현황</div>
+  <div id="summaryBody"></div>
+</div>
+
+<!-- ══════════ SCREEN: 내보내기 ══════════ -->
+<div class="screen main" id="screen-export" style="display:none">
+  <div class="page-title">내보내기</div>
+  <div id="exportBody"></div>
+</div>
+
+<!-- ══════════ SCREEN: 설정 ══════════ -->
+<div class="screen main" id="screen-settings" style="display:none">
+  <div class="page-title">배율·환율 설정</div>
+  <div id="settingsBody"></div>
+</div>
+
+<!-- ══════════ SHEET OVERLAY ══════════ -->
+<div class="overlay" id="overlay" onclick="closeSheet()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDTfiNbbleGz69wr8dYqlOp1vyl3-l3sxY",
+  authDomain: "jejeunosity-reorder.firebaseapp.com",
+  databaseURL: "https://jejeunosity-reorder-default-rtdb.firebaseio.com",
+  projectId: "jejeunosity-reorder",
+  storageBucket: "jejeunosity-reorder.firebasestorage.app",
+  messagingSenderId: "1005352974921",
+  appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const CS = db.ref('costsheet');
+
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let curRole = null;
+let curSeasonId = null;
+let curProductId = null;
+let curProdFilter = 'all';
+let seasons = {};       // { [sid]: { name, line, createdAt, products:{...} } }
+let curCI = null;       // 현재 편집 중인 costItems (deep copy)
+let _editColors = [];   // 상품 정보 수정 시 임시 컬러 배열
+
+let settings = {
+  markupWholesale: 1.8,
+  markupRetail: 1.7,
+  lossRate: 0.1,
+  exchangeJPY: 9.5,
+  exchangeCNY: 190,
+  washingDefault: 500,
+  labelDefault: 700,
+  factories: ['청와대','다복사','다성니트','씨엠모자','외부공장'],
+  kidsSizes: ['90','100','110','120','130','140']
+};
+
+const ROLE_INFO = {
+  owner:          { name:'대표',           tag:'rt-owner'  },
+  designer_kids:  { name:'아동복 디자이너', tag:'rt-dkids'  },
+  designer_women: { name:'성인복 디자이너', tag:'rt-dwomen' }
+};
+const CATEGORIES = ['아우터','상의','하의','원피스','세트','수영복','이너웨어','모자/잡화','기타'];
+function getFactories(){ return (settings.factories&&settings.factories.length)?settings.factories:['청와대','다복사','다성니트','씨엠모자','외부공장']; }
+function getKidsSizes(){ return (settings.kidsSizes&&settings.kidsSizes.length)?settings.kidsSizes:['90','100','110','120','130','140']; }
+const FABRIC_TYPES= ['주원단','배색원단','랍빠감','안감','기타'];
+
+// ══════════════════════════════════════════════════════
+// FIREBASE LISTENERS
+// ══════════════════════════════════════════════════════
+function initFirebase() {
+  setSyncDot('연결중...');
+  CS.child('settings').on('value', snap => {
+    if (snap.val()) Object.assign(settings, snap.val());
+    setSyncDot('✓');
+    setTimeout(() => setSyncDot(''), 2000);
+  });
+  CS.child('seasons').on('value', snap => {
+    seasons = snap.val() || {};
+    const active = document.querySelector('.screen.on');
+    if (!active) return;
+    const id = active.id;
+    if (id === 'screen-seasons')  renderSeasons();
+    if (id === 'screen-products') renderProducts();
+    if (id === 'screen-summary')  renderSummary();
+    if (id === 'screen-cost' && curSeasonId && curProductId) {
+      // 원가 입력 화면 열려있을 때 Firebase 업데이트가 와도 curCI 유지 (덮어쓰기 방지)
+    }
+  });
+}
+
+function setSyncDot(s) {
+  const el = document.getElementById('syncDot');
+  if (el) el.textContent = s;
+}
+
+// ══════════════════════════════════════════════════════
+// 유틸
+// ══════════════════════════════════════════════════════
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtNum(n) { return n ? Math.round(n).toLocaleString() : '0'; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 2200);
+}
+
+// ══════════════════════════════════════════════════════
+// SCREEN
+// ══════════════════════════════════════════════════════
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => { s.style.display='none'; s.classList.remove('on'); });
+  const el = document.getElementById('screen-' + name);
+  if (el) { el.style.display = ''; el.classList.add('on'); }
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════════════════
+// ROLE
+// ══════════════════════════════════════════════════════
+function selectRole(role) {
+  curRole = role;
+  localStorage.setItem('cs_role', role);
+  const ri = ROLE_INFO[role];
+  document.getElementById('roleTag').innerHTML = `<span class="role-tag ${ri.tag}">${ri.name}</span>`;
+  document.getElementById('mainHdr').style.display = '';
+  buildNav(role);
+  document.getElementById('mainNav').style.display = 'flex';
+  navGo('seasons');
+}
+
+function changeRole() {
+  curRole = null;
+  localStorage.removeItem('cs_role');
+  document.getElementById('mainHdr').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  document.getElementById('fab').style.display = 'none';
+  showScreen('role');
+}
+
+function buildNav(role) {
+  const nav = document.getElementById('mainNav');
+  if (role === 'owner') {
+    nav.innerHTML = `
+      <div class="nav-item" data-nav="seasons" onclick="navGo('seasons')"><span class="nav-icon">📁</span><span class="nav-lbl">시즌</span></div>
+      <div class="nav-item" data-nav="summary" onclick="navGo('summary')"><span class="nav-icon">📊</span><span class="nav-lbl">현황</span></div>
+      <div class="nav-item" data-nav="export" onclick="navGo('export')"><span class="nav-icon">📤</span><span class="nav-lbl">내보내기</span></div>
+      <div class="nav-item" data-nav="settings" onclick="navGo('settings')"><span class="nav-icon">⚙️</span><span class="nav-lbl">설정</span></div>`;
+  } else {
+    nav.innerHTML = `
+      <div class="nav-item" data-nav="seasons" onclick="navGo('seasons')"><span class="nav-icon">📁</span><span class="nav-lbl">시즌</span></div>`;
+  }
+}
+
+function setNavOn(name) {
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('on', el.dataset.nav === name);
+  });
+}
+
+function navGo(name) {
+  document.getElementById('mainHdr').style.display = '';
+  document.getElementById('mainNav').style.display = 'flex';
+  document.getElementById('fab').style.display = 'none';
+  setNavOn(name);
+  showScreen(name);
+  if (name === 'seasons') {
+    if (curRole === 'owner') {
+      document.getElementById('fab').style.display = '';
+      document.getElementById('fab').onclick = openNewSeason;
+    }
+    renderSeasons();
+  } else if (name === 'summary')  renderSummary();
+  else if (name === 'export')    renderExport();
+  else if (name === 'settings')  renderSettings();
+}
+
+// ══════════════════════════════════════════════════════
+// SEASONS
+// ══════════════════════════════════════════════════════
+function renderSeasons() {
+  const c = document.getElementById('seasonList');
+  const list = Object.entries(seasons).sort((a,b) => (b[1].createdAt||'') > (a[1].createdAt||'') ? 1 : -1);
+
+  if (!list.length) {
+    c.innerHTML = `<div class="empty"><div class="empty-ico">📁</div><div class="empty-title">시즌이 없습니다</div></div>`;
+    if (curRole === 'owner') {
+      c.innerHTML += `<div class="add-btn-dashed" onclick="openNewSeason()">+ 새 시즌 추가</div>`;
+    }
+    return;
+  }
+
+  let html = '';
+  list.forEach(([sid, s]) => {
+    const prods = s.products ? Object.values(s.products) : [];
+    const total = prods.length;
+    const done  = prods.filter(p => p.status === '확정').length;
+    const pct   = total > 0 ? Math.round(done/total*100) : 0;
+    const lineChip = s.line==='kids'?'<span class="chip ch-blue">아동</span>':s.line==='women'?'<span class="chip ch-pink">성인</span>':'<span class="chip ch-gray">전체</span>';
+    html += `<div class="season-card" onclick="enterSeason('${sid}')">
+      <div class="season-ico">🗂</div>
+      <div class="season-info">
+        <div class="season-name">${s.name} ${lineChip}</div>
+        <div class="season-meta">상품 ${total}개 · 확정 ${done}개</div>
+        <div class="season-prog-bar"><div class="season-prog-fill" style="width:${pct}%"></div></div>
+        <div class="season-prog-label">확정 ${done}/${total} (${pct}%)</div>
+      </div>
+      ${curRole==='owner'?`<button onclick="event.stopPropagation();deleteSeason('${sid}')" style="background:none;border:none;font-size:18px;padding:8px;color:#ccc;cursor:pointer">🗑️</button>`:''}
+      <div style="font-size:20px;color:#ccc;flex-shrink:0">›</div>
+    </div>`;
+  });
+  if (curRole === 'owner') html += `<div class="add-btn-dashed" onclick="openNewSeason()">+ 새 시즌 추가</div>`;
+  c.innerHTML = html;
+}
+
+function openNewSeason() {
+  sheet('새 시즌 추가', `
+    <div class="frow"><label class="flabel">시즌 이름</label><input type="text" class="finput" id="sn_name" placeholder="예: 25FW, 26SS"></div>
+    <div class="frow"><label class="flabel">라인</label>
+      <select class="finput" id="sn_line">
+        <option value="all">전체 (아동+성인)</option>
+        <option value="kids">아동복</option>
+        <option value="women">성인복</option>
+      </select>
+    </div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmNewSeason()">추가</button></div>`);
+  setTimeout(() => document.getElementById('sn_name')?.focus(), 100);
+}
+
+function confirmNewSeason() {
+  const name = document.getElementById('sn_name').value.trim();
+  if (!name) { alert('시즌 이름을 입력해주세요'); return; }
+  const line = document.getElementById('sn_line').value;
+  CS.child('seasons').child(uid()).set({ name, line, createdAt: today() });
+  closeSheet();
+}
+
+function deleteSeason(sid) {
+  const s = seasons[sid]; if (!s) return;
+  const pc = s.products ? Object.keys(s.products).length : 0;
+  if (!confirm(`'${s.name}' 시즌을 삭제하시겠습니까?\n상품 ${pc}개도 함께 삭제됩니다.\n되돌릴 수 없습니다.`)) return;
+  CS.child('seasons').child(sid).remove();
+}
+
+function enterSeason(sid) {
+  curSeasonId = sid;
+  curProdFilter = 'all';
+  const s = seasons[sid];
+  document.getElementById('prodHdrTitle').textContent = s?.name || '';
+  document.querySelectorAll('#prodTabs .tab').forEach(t => {
+    t.style.display = '';
+    t.classList.toggle('on', t.dataset.filter === 'all');
+  });
+  // 디자이너는 본인 라인 탭 고정
+  if (curRole === 'designer_kids') {
+    setProdFilter('kids', document.querySelector('#prodTabs [data-filter="kids"]'));
+    document.querySelector('#prodTabs [data-filter="women"]').style.display = 'none';
+    document.querySelector('#prodTabs [data-filter="all"]').style.display = 'none';
+  } else if (curRole === 'designer_women') {
+    setProdFilter('women', document.querySelector('#prodTabs [data-filter="women"]'));
+    document.querySelector('#prodTabs [data-filter="kids"]').style.display = 'none';
+    document.querySelector('#prodTabs [data-filter="all"]').style.display = 'none';
+  }
+  const fab = document.getElementById('fab');
+  fab.onclick = openNewProduct;
+  fab.style.display = curRole === 'owner' ? '' : 'none';
+  showScreen('products');
+  document.getElementById('mainHdr').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderProducts();
+}
+
+function exitToSeasons() {
+  curSeasonId = null;
+  navGo('seasons');
+}
+
+// ══════════════════════════════════════════════════════
+// PRODUCTS
+// ══════════════════════════════════════════════════════
+function renderProducts() {
+  const c = document.getElementById('productList');
+  if (!curSeasonId) { c.innerHTML = ''; return; }
+  const s = seasons[curSeasonId]; if (!s) { c.innerHTML = ''; return; }
+  let entries = Object.entries(s.products || {});
+
+  if (curRole === 'designer_kids')   entries = entries.filter(([,p]) => p.line === 'kids');
+  else if (curRole === 'designer_women') entries = entries.filter(([,p]) => p.line === 'women');
+  else if (curProdFilter === 'kids')   entries = entries.filter(([,p]) => p.line === 'kids');
+  else if (curProdFilter === 'women')  entries = entries.filter(([,p]) => p.line === 'women');
+
+  entries.sort((a,b) => (a[1].no||999) - (b[1].no||999));
+
+  if (!entries.length) {
+    c.innerHTML = `<div class="empty"><div class="empty-ico">📦</div><div class="empty-title">상품이 없습니다</div></div>`;
+    if (curRole === 'owner') c.innerHTML += `<div class="add-btn-dashed" onclick="openNewProduct()">+ 새 상품 추가</div>`;
+    return;
+  }
+  let listHtml = entries.map(([pid, p]) => {
+    const sdot = p.status==='확정'?'sd-green':p.status==='검토중'?'sd-orange':'sd-gray';
+    const sbadge = p.status==='확정'?'<span class="badge b-green">확정</span>':p.status==='검토중'?'<span class="badge b-orange">검토중</span>':'<span class="badge b-gray">입력중</span>';
+    const lchip = p.line==='kids'?'<span class="chip ch-blue">아동</span>':'<span class="chip ch-pink">성인</span>';
+    const ci = p.costItems || {};
+    const tc = ci.totalCost_toddler || 0;
+    return `<div class="prod-card" onclick="openCostInput('${pid}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">
+        <div style="flex:1;min-width:0">
+          <div class="prod-name"><span class="status-dot ${sdot}"></span>${p.no?`No.${p.no} `:''}${p.productName_kr||'(이름없음)'}</div>
+          <div class="prod-en">${p.productName_en||''}</div>
+        </div>
+        ${sbadge}
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        ${lchip}
+        ${p.category?`<span class="chip ch-gray">${p.category}</span>`:''}
+        ${p.factory?`<span style="font-size:12px;color:#aaa">📍 ${p.factory}</span>`:''}
+        ${tc>0?`<span style="font-size:12px;font-weight:700;color:#111;margin-left:auto">${fmtNum(tc)}원</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  if (curRole === 'owner') listHtml += `<div class="add-btn-dashed" onclick="openNewProduct()">+ 새 상품 추가</div>`;
+  c.innerHTML = listHtml;
+}
+
+function setProdFilter(f, el) {
+  curProdFilter = f;
+  document.querySelectorAll('#prodTabs .tab').forEach(t => t.classList.remove('on'));
+  if (el) el.classList.add('on');
+  renderProducts();
+}
+
+// ══════════════════════════════════════════════════════
+// NEW PRODUCT
+// ══════════════════════════════════════════════════════
+function openNewProduct() {
+  if (!curSeasonId) return;
+  const s = seasons[curSeasonId];
+  const existing = s?.products ? Object.values(s.products) : [];
+  const nextNo = existing.length ? Math.max(...existing.map(p=>p.no||0))+1 : 1;
+  const seasonLine = s?.line || 'all';
+  sheet('새 상품 추가', `
+    <div class="frow"><label class="flabel">품번</label><input type="number" class="finput" id="np_no" value="${nextNo}" inputmode="numeric"></div>
+    <div class="frow"><label class="flabel">상품명 (한글)</label><input type="text" class="finput" id="np_kr" placeholder="예: 서프윈드브레이커"></div>
+    <div class="frow"><label class="flabel">상품명 (영문)</label><input type="text" class="finput" id="np_en" placeholder="예: Surf Windbreaker"></div>
+    <div class="frow"><label class="flabel">라인</label>
+      <select class="finput" id="np_line">
+        ${seasonLine==='women'?'':' <option value="kids">아동복 (Kids)</option>'}
+        ${seasonLine==='kids' ?'':' <option value="women">성인복 (Women)</option>'}
+      </select>
+    </div>
+    <div class="frow"><label class="flabel">카테고리</label>
+      <select class="finput" id="np_cat">${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+    </div>
+    <div class="frow"><label class="flabel">담당 공장</label>
+      <select class="finput" id="np_factory">
+        <option value="">미지정</option>
+        ${getFactories().map(f=>`<option>${f}</option>`).join('')}
+      </select>
+    </div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="confirmNewProduct()">추가</button></div>`);
+  setTimeout(() => document.getElementById('np_kr')?.focus(), 100);
+}
+
+function confirmNewProduct() {
+  const kr = document.getElementById('np_kr').value.trim();
+  if (!kr) { alert('상품명(한글)을 입력해주세요'); return; }
+  const pid = uid();
+  const line = document.getElementById('np_line').value;
+  CS.child('seasons').child(curSeasonId).child('products').child(pid).set({
+    no: parseInt(document.getElementById('np_no').value)||1,
+    productName_kr: kr,
+    productName_en: document.getElementById('np_en').value.trim(),
+    category: document.getElementById('np_cat').value,
+    line,
+    factory: document.getElementById('np_factory').value,
+    colors: [],
+    status: '입력중',
+    createdAt: today(),
+    updatedAt: today(),
+    costItems: {
+      fabrics: [], trims: [],
+      dyeing: 0, embroidery: 0,
+      washing: settings.washingDefault||500,
+      label: settings.labelDefault||700,
+      sewing: 0,
+      totalCost_toddler: 0, totalCost_junior: 0
+    }
+  });
+  closeSheet();
+  setTimeout(() => openCostInput(pid), 400);
+}
+
+function deleteProduct() {
+  if (!curSeasonId || !curProductId) return;
+  const p = seasons[curSeasonId]?.products?.[curProductId];
+  if (!p || !confirm(`'${p.productName_kr}' 상품을 삭제하시겠습니까?\n되돌릴 수 없습니다.`)) return;
+  CS.child('seasons').child(curSeasonId).child('products').child(curProductId).remove();
+  exitToProducts();
+}
+
+function exitToProducts() {
+  curProductId = null; curCI = null;
+  const fab = document.getElementById('fab');
+  fab.onclick = openNewProduct;
+  fab.style.display = curRole === 'owner' ? '' : 'none';
+  showScreen('products');
+  document.getElementById('mainHdr').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  renderProducts();
+}
+
+// ══════════════════════════════════════════════════════
+// COST INPUT
+// ══════════════════════════════════════════════════════
+function canEdit(p) {
+  if (!p) return false;
+  return curRole==='owner' ||
+    (curRole==='designer_kids'  && p.line==='kids')  ||
+    (curRole==='designer_women' && p.line==='women');
+}
+
+function openCostInput(pid) {
+  curProductId = pid;
+  const p = seasons[curSeasonId]?.products?.[pid];
+  if (!p) return;
+  curCI = JSON.parse(JSON.stringify(p.costItems || {
+    fabrics:[], trims:[], dyeing:0, embroidery:0,
+    washing: settings.washingDefault, label: settings.labelDefault, sewing:0,
+    totalCost_toddler:0, totalCost_junior:0
+  }));
+  if (!curCI.fabrics) curCI.fabrics = [];
+  if (!curCI.trims)   curCI.trims   = [];
+  document.getElementById('costHdrTitle').textContent = p.productName_kr || '원가 입력';
+  document.getElementById('costDelBtn').style.display = curRole==='owner' ? '' : 'none';
+  document.getElementById('fab').style.display = 'none';
+  showScreen('cost');
+  document.getElementById('mainHdr').style.display = 'none';
+  document.getElementById('mainNav').style.display = 'none';
+  buildCostForm();
+}
+
+function buildCostForm() {
+  const p = seasons[curSeasonId]?.products?.[curProductId];
+  if (!p) return;
+  const isKids  = p.line === 'kids';
+  const editable = canEdit(p);
+  const ci = curCI;
+  const sbadge = p.status==='확정'?'<span class="badge b-green">확정</span>':p.status==='검토중'?'<span class="badge b-orange">검토중</span>':'<span class="badge b-gray">입력중</span>';
+
+  let html = '';
+
+  // ── 상품 정보 ──
+  html += `<div class="fsec">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div><div style="font-size:18px;font-weight:800">${p.no?`No.${p.no} `:''}${p.productName_kr}</div>
+      <div style="font-size:13px;color:#aaa;margin-top:2px">${p.productName_en||''}</div></div>
+      ${sbadge}
+    </div>
+    <div class="info-grid">
+      <div class="info-item"><div class="info-label">라인</div><div class="info-value">${p.line==='kids'?'아동복':'성인복'}</div></div>
+      <div class="info-item"><div class="info-label">카테고리</div><div class="info-value">${p.category||'-'}</div></div>
+      <div class="info-item"><div class="info-label">공장</div><div class="info-value">${p.factory||'-'}</div></div>
+      <div class="info-item"><div class="info-label">컬러</div><div class="info-value" style="font-size:12px">${(p.colors||[]).join(', ')||'-'}</div></div>
+    </div>
+    ${curRole==='owner'?`<button class="btn btn-ghost btn-sm" style="margin-top:10px;width:100%" onclick="openEditProductInfo()">상품 정보 수정</button>`:''}
+  </div>`;
+
+  // ── 원단 섹션 ──
+  html += `<div class="fsec">
+    <div class="fsec-title"><span>원단</span>${editable?`<button class="btn btn-dark btn-sm" onclick="addFabric()">+ 추가</button>`:''}</div>
+    <div id="fabricList">${buildFabricList(isKids, editable)}</div>
+  </div>`;
+
+  // ── 부자재 섹션 ──
+  html += `<div class="fsec">
+    <div class="fsec-title"><span>부자재</span>${editable?`<button class="btn btn-dark btn-sm" onclick="addTrim()">+ 추가</button>`:''}</div>
+    <div id="trimList">${buildTrimList(editable)}</div>
+  </div>`;
+
+  // ── 가공비 섹션 ──
+  const RO = editable ? '' : 'readonly';
+  html += `<div class="fsec">
+    <div class="fsec-title">가공비</div>
+    <div class="grid-2">
+      <div class="frow"><label class="flabel">나염비 (원)</label><input type="number" class="finput" id="ci_dyeing"      value="${ci.dyeing||0}"      inputmode="numeric" oninput="onCostChange()" ${RO}></div>
+      <div class="frow"><label class="flabel">자수비 (원)</label><input type="number" class="finput" id="ci_embroidery" value="${ci.embroidery||0}" inputmode="numeric" oninput="onCostChange()" ${RO}></div>
+      <div class="frow"><label class="flabel">워싱비 (원)</label><input type="number" class="finput" id="ci_washing"    value="${ci.washing||0}"    inputmode="numeric" oninput="onCostChange()" ${RO}></div>
+      <div class="frow"><label class="flabel">라벨+잡비 (원)</label><input type="number" class="finput" id="ci_label"   value="${ci.label||0}"      inputmode="numeric" oninput="onCostChange()" ${RO}></div>
+    </div>
+    <div class="frow"><label class="flabel">공임 (원)</label><input type="number" class="finput" id="ci_sewing" value="${ci.sewing||0}" inputmode="numeric" oninput="onCostChange()" ${RO}></div>
+  </div>`;
+
+  // ── 원가 합계 박스 ──
+  html += `<div class="cost-box" id="costBox">${buildCostBox(isKids)}</div>`;
+
+  // ── 저장/상태 버튼 ──
+  if (editable) {
+    html += `<div class="btnrow"><button class="btn btn-ghost" onclick="exitToProducts()">취소</button><button class="btn btn-dark" onclick="saveCostItems()">저장</button></div>`;
+    if (p.status === '입력중') {
+      html += `<div style="margin-top:8px"><button class="btn btn-blue" onclick="requestReview()">검토 요청</button></div>`;
+    }
+  }
+  if (curRole === 'owner') {
+    if (p.status === '검토중') html += `<div style="margin-top:8px"><button class="btn btn-green" onclick="confirmProduct()">✓ 확정</button></div>`;
+    if (p.status === '확정')   html += `<div style="margin-top:8px"><button class="btn btn-ghost" onclick="unconfirmProduct()">확정 취소</button></div>`;
+    html += `<div style="margin-top:8px"><button class="btn btn-ghost" onclick="printProduct()">🖨️ 인쇄 (원가표)</button></div>`;
+  }
+
+  document.getElementById('costBody').innerHTML = html;
+  updateCostBox();
+}
+
+// ── 원단 리스트 렌더 ──
+function buildFabricList(isKids, editable) {
+  const fs = curCI.fabrics;
+  if (!fs.length) return `<div style="color:#bbb;font-size:13px;text-align:center;padding:12px 0">원단 항목을 추가해주세요</div>`;
+  const RO = editable ? '' : 'readonly';
+  const DIS = editable ? '' : 'disabled';
+  return fs.map((f, i) => {
+    const szUsage = f.sizeUsage || {};
+    const avgDisplay = (+(f.usage)||0).toFixed(2);
+    return `
+    <div class="item-row">
+      <div class="item-row-header">
+        <span class="item-row-title">원단 ${i+1} — ${f.type||''}</span>
+        <span class="item-row-subtotal" id="fsub_${i}">${fmtNum(f.subtotal||0)}원</span>
+        ${editable?`<button class="remove-btn" onclick="removeFabric(${i})">삭제</button>`:''}
+      </div>
+      <div class="grid-2">
+        <div class="frow"><label class="flabel">종류</label>
+          <select class="finput" id="f_type_${i}" oninput="readFabric(${i})" ${DIS}>
+            ${FABRIC_TYPES.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="frow"><label class="flabel">공급처</label>
+          <input type="text" class="finput" id="f_sup_${i}" value="${f.supplier||''}" placeholder="공급처" oninput="readFabric(${i})" ${RO}>
+        </div>
+        <div class="frow"><label class="flabel">컬러 메모</label>
+          <input type="text" class="finput" id="f_col_${i}" value="${f.colorNote||''}" placeholder="NC" oninput="readFabric(${i})" ${RO}>
+        </div>
+        <div class="frow"><label class="flabel">단가 (원)</label>
+          <input type="number" class="finput" id="f_up_${i}" value="${f.unitPrice||''}" inputmode="numeric" placeholder="0" oninput="readFabric(${i})" ${RO}>
+        </div>
+        ${isKids ? '' : `<div class="frow"><label class="flabel">가요척</label>
+          <input type="number" class="finput" id="f_use_${i}" value="${f.usage||''}" inputmode="decimal" placeholder="0.0" step="0.01" oninput="readFabric(${i})" ${RO}>
+        </div>`}
+        <div class="frow"><label class="flabel">로스율</label>
+          <input type="number" class="finput" id="f_loss_${i}" value="${f.lossRate!=null?f.lossRate:settings.lossRate}" inputmode="decimal" placeholder="0.1" step="0.01" oninput="readFabric(${i})" ${RO}>
+        </div>
+      </div>
+      ${isKids ? `<div class="frow" style="margin-top:4px"><label class="flabel">사이즈별 요척</label>
+        <div class="sz-usage-grid">
+          ${getKidsSizes().map(sz=>`<div class="sz-usage-item">
+            <span class="sz-usage-lbl">${sz}</span>
+            <input type="number" class="sz-usage-input" id="f_sz_${sz}_${i}" value="${szUsage['s'+sz]>0?szUsage['s'+sz]:''}" inputmode="decimal" placeholder="-" step="0.01" oninput="readFabric(${i})" ${DIS}>
+          </div>`).join('')}
+        </div>
+        <div class="sz-avg-box" id="f_szavg_${i}">평균 요척: ${avgDisplay}</div>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── 부자재 리스트 렌더 ──
+function buildTrimList(editable) {
+  const ts = curCI.trims;
+  if (!ts.length) return `<div style="color:#bbb;font-size:13px;text-align:center;padding:12px 0">부자재 항목을 추가해주세요</div>`;
+  const RO = editable ? '' : 'readonly';
+  return ts.map((t, i) => `
+    <div class="item-row">
+      <div class="item-row-header">
+        <span class="item-row-title">부자재 ${i+1} — ${t.name||''}</span>
+        <span class="item-row-subtotal" id="tsub_${i}">${fmtNum(t.subtotal||0)}원</span>
+        ${editable?`<button class="remove-btn" onclick="removeTrim(${i})">삭제</button>`:''}
+      </div>
+      <div class="grid-2">
+        <div class="frow"><label class="flabel">품명</label>
+          <input type="text" class="finput" id="t_name_${i}" value="${t.name||''}" placeholder="단추, 지퍼..." oninput="readTrim(${i})" ${RO}>
+        </div>
+        <div class="frow"><label class="flabel">공급처</label>
+          <input type="text" class="finput" id="t_sup_${i}" value="${t.supplier||''}" placeholder="공급처" oninput="readTrim(${i})" ${RO}>
+        </div>
+        <div class="frow"><label class="flabel">단가 (원)</label>
+          <input type="number" class="finput" id="t_up_${i}" value="${t.unitPrice||''}" inputmode="numeric" placeholder="0" oninput="readTrim(${i})" ${RO}>
+        </div>
+        <div class="frow"><label class="flabel">수량</label>
+          <input type="number" class="finput" id="t_qty_${i}" value="${t.quantity||''}" inputmode="numeric" placeholder="0" oninput="readTrim(${i})" ${RO}>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── 원가 합계 박스 렌더 ──
+function buildCostBox(isKids) {
+  const ci = curCI;
+  const tc = ci.totalCost_toddler || 0;
+  const p  = calcPrices(tc);
+  return `<div class="cost-box-title">원가 합계</div>
+    <div class="cost-row big"><span class="cost-key">${isKids?'아동':'여성'} 원가</span><span class="cost-val" style="font-size:17px;color:#4ade80">${fmtNum(tc)}원</span></div>
+    <div class="cost-row"><span class="cost-key">내수 도매가</span><span class="cost-val">${fmtNum(p.wholesale)}원</span></div>
+    <div class="cost-row"><span class="cost-key">소비자가</span><span class="cost-val">${fmtNum(p.retail)}원</span></div>
+    <div class="cost-row"><span class="cost-key">일본 소비자가</span><span class="cost-val">¥${fmtNum(p.jpy)}</span></div>
+    <div class="cost-row"><span class="cost-key">중국 도매가</span><span class="cost-val">元${fmtNum(p.cny)}</span></div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// 계산 로직
+// ══════════════════════════════════════════════════════
+function calcFabric(up, use, loss) {
+  loss = loss != null ? loss : settings.lossRate;
+  if (!up || !use) return 0;
+  return Math.ceil(up * (use + loss));
+}
+function calcFabricJunior(up, use, jex, loss) {
+  loss = loss != null ? loss : settings.lossRate;
+  jex  = jex  || 0;
+  if (!up || !use) return 0;
+  return Math.ceil(up * (use + jex + loss));
+}
+function calcPrices(tc) {
+  if (!tc) return { wholesale:0, retail:0, jpy:0, cny:0 };
+  const w = Math.round(tc * settings.markupWholesale / 100) * 100;
+  const r = Math.round(w  * settings.markupRetail   / 100) * 100;
+  return {
+    wholesale: w, retail: r,
+    jpy: Math.round(r / settings.exchangeJPY),
+    cny: Math.round(w / settings.exchangeCNY * 10) / 10
+  };
+}
+
+function readFabric(i) {
+  const f = curCI.fabrics[i]; if (!f) return;
+  f.type      = document.getElementById(`f_type_${i}`)?.value || f.type;
+  f.supplier  = document.getElementById(`f_sup_${i}`)?.value  || '';
+  f.colorNote = document.getElementById(`f_col_${i}`)?.value  || '';
+  f.unitPrice = parseFloat(document.getElementById(`f_up_${i}`)?.value)   || 0;
+  f.lossRate  = parseFloat(document.getElementById(`f_loss_${i}`)?.value);
+  if (isNaN(f.lossRate)) f.lossRate = settings.lossRate;
+
+  const isKids = seasons[curSeasonId]?.products?.[curProductId]?.line === 'kids';
+  if (isKids) {
+    f.sizeUsage = f.sizeUsage || {};
+    let sum = 0, count = 0;
+    getKidsSizes().forEach(sz => {
+      const val = parseFloat(document.getElementById(`f_sz_${sz}_${i}`)?.value) || 0;
+      f.sizeUsage['s' + sz] = val;
+      if (val > 0) { sum += val; count++; }
+    });
+    f.usage = count > 0 ? Math.round(sum / count * 100) / 100 : 0;
+    const avgEl = document.getElementById(`f_szavg_${i}`);
+    if (avgEl) avgEl.textContent = `평균 요척: ${(+(f.usage)||0).toFixed(2)}`;
+  } else {
+    f.usage = parseFloat(document.getElementById(`f_use_${i}`)?.value) || 0;
+  }
+
+  f.subtotal = calcFabric(f.unitPrice, f.usage, f.lossRate);
+  const subEl = document.getElementById(`fsub_${i}`);
+  if (subEl) subEl.textContent = fmtNum(f.subtotal) + '원';
+  updateCostBox();
+}
+
+function readTrim(i) {
+  const t = curCI.trims[i]; if (!t) return;
+  t.name      = document.getElementById(`t_name_${i}`)?.value || '';
+  t.supplier  = document.getElementById(`t_sup_${i}`)?.value  || '';
+  t.unitPrice = parseFloat(document.getElementById(`t_up_${i}`)?.value)  || 0;
+  t.quantity  = parseFloat(document.getElementById(`t_qty_${i}`)?.value) || 0;
+  t.subtotal  = t.unitPrice * t.quantity;
+  const subEl = document.getElementById(`tsub_${i}`);
+  if (subEl) subEl.textContent = fmtNum(t.subtotal) + '원';
+  updateCostBox();
+}
+
+function onCostChange() {
+  curCI.dyeing      = parseFloat(document.getElementById('ci_dyeing')?.value)      || 0;
+  curCI.embroidery  = parseFloat(document.getElementById('ci_embroidery')?.value)  || 0;
+  curCI.washing     = parseFloat(document.getElementById('ci_washing')?.value)     || 0;
+  curCI.label       = parseFloat(document.getElementById('ci_label')?.value)       || 0;
+  curCI.sewing      = parseFloat(document.getElementById('ci_sewing')?.value)      || 0;
+  updateCostBox();
+}
+
+function updateCostBox() {
+  const ci = curCI;
+  const isKids = seasons[curSeasonId]?.products?.[curProductId]?.line === 'kids';
+  const fTot = ci.fabrics.reduce((s,f) => s + (f.subtotal||0), 0);
+  const tTot = ci.trims.reduce((s,t) => s + (t.subtotal||0), 0);
+  const proc = (ci.dyeing||0)+(ci.embroidery||0)+(ci.washing||0)+(ci.label||0)+(ci.sewing||0);
+  ci.totalCost_toddler = fTot + tTot + proc;
+  ci.totalCost_junior  = 0;
+  const box = document.getElementById('costBox');
+  if (box) box.innerHTML = buildCostBox(isKids);
+}
+
+function addFabric() {
+  const p = seasons[curSeasonId]?.products?.[curProductId];
+  curCI.fabrics.push({ id:uid(), type:'주원단', supplier:'', colorNote:'', unitPrice:0, usage:0, lossRate:settings.lossRate||0.1, subtotal:0, sizeUsage:{} });
+  document.getElementById('fabricList').innerHTML = buildFabricList(p?.line==='kids', canEdit(p));
+}
+function removeFabric(i) {
+  const p = seasons[curSeasonId]?.products?.[curProductId];
+  curCI.fabrics.splice(i, 1);
+  document.getElementById('fabricList').innerHTML = buildFabricList(p?.line==='kids', canEdit(p));
+  updateCostBox();
+}
+function addTrim() {
+  const p = seasons[curSeasonId]?.products?.[curProductId];
+  curCI.trims.push({ id:uid(), name:'', supplier:'', unitPrice:0, quantity:0, subtotal:0 });
+  document.getElementById('trimList').innerHTML = buildTrimList(canEdit(p));
+}
+function removeTrim(i) {
+  const p = seasons[curSeasonId]?.products?.[curProductId];
+  curCI.trims.splice(i, 1);
+  document.getElementById('trimList').innerHTML = buildTrimList(canEdit(p));
+  updateCostBox();
+}
+
+// ══════════════════════════════════════════════════════
+// 저장 / 상태 변경
+// ══════════════════════════════════════════════════════
+function flushInputs() {
+  // 가공비
+  curCI.dyeing     = parseFloat(document.getElementById('ci_dyeing')?.value)     || 0;
+  curCI.embroidery = parseFloat(document.getElementById('ci_embroidery')?.value) || 0;
+  curCI.washing    = parseFloat(document.getElementById('ci_washing')?.value)    || 0;
+  curCI.label      = parseFloat(document.getElementById('ci_label')?.value)      || 0;
+  curCI.sewing     = parseFloat(document.getElementById('ci_sewing')?.value)     || 0;
+  curCI.fabrics.forEach((_,i) => readFabric(i));
+  curCI.trims.forEach((_,i)   => readTrim(i));
+  updateCostBox();
+  // 단가 저장
+  const pt = calcPrices(curCI.totalCost_toddler);
+  Object.assign(curCI, {
+    wholesale_toddler:     pt.wholesale,
+    retail_toddler:        pt.retail,
+    retail_jpy_toddler:    pt.jpy,
+    wholesale_cny_toddler: pt.cny,
+    wholesale_junior:      0,
+    retail_junior:         0,
+    retail_jpy_junior:     0,
+    wholesale_cny_junior:  0,
+    updatedBy: curRole,
+    updatedAt: today()
+  });
+}
+
+function saveCostItems(silent) {
+  if (!curSeasonId || !curProductId) return;
+  flushInputs();
+  setSyncDot('저장중...');
+  CS.child('seasons').child(curSeasonId).child('products').child(curProductId).child('costItems')
+    .set(curCI)
+    .then(() => {
+      CS.child('seasons').child(curSeasonId).child('products').child(curProductId).update({ updatedAt: today() });
+      setSyncDot('✓');
+      setTimeout(() => setSyncDot(''), 2000);
+      if (!silent) showToast('저장되었습니다');
+    })
+    .catch(() => { setSyncDot('저장 실패'); showToast('저장에 실패했습니다'); });
+}
+
+function requestReview() {
+  if (!confirm('검토 요청을 하시겠습니까?\n저장 후 상태가 "검토중"으로 변경됩니다.')) return;
+  saveCostItems(true);
+  CS.child('seasons').child(curSeasonId).child('products').child(curProductId).update({ status:'검토중', updatedAt:today() });
+  showToast('검토 요청했습니다');
+  setTimeout(() => exitToProducts(), 400);
+}
+function confirmProduct() {
+  if (!confirm('원가를 확정하시겠습니까?')) return;
+  CS.child('seasons').child(curSeasonId).child('products').child(curProductId).update({ status:'확정', updatedAt:today() });
+  showToast('확정되었습니다');
+  setTimeout(() => exitToProducts(), 400);
+}
+function unconfirmProduct() {
+  CS.child('seasons').child(curSeasonId).child('products').child(curProductId).update({ status:'검토중', updatedAt:today() });
+  showToast('확정이 취소되었습니다');
+  setTimeout(() => exitToProducts(), 300);
+}
+
+// ══════════════════════════════════════════════════════
+// 상품 정보 수정 (대표)
+// ══════════════════════════════════════════════════════
+function openEditProductInfo() {
+  const p = seasons[curSeasonId]?.products?.[curProductId]; if (!p) return;
+  _editColors = [...(p.colors||[])];
+  sheet('상품 정보 수정', `
+    <div class="frow"><label class="flabel">품번</label><input type="number" class="finput" id="ep_no" value="${p.no||''}" inputmode="numeric"></div>
+    <div class="frow"><label class="flabel">상품명 (한글)</label><input type="text" class="finput" id="ep_kr" value="${p.productName_kr||''}"></div>
+    <div class="frow"><label class="flabel">상품명 (영문)</label><input type="text" class="finput" id="ep_en" value="${p.productName_en||''}"></div>
+    <div class="frow"><label class="flabel">카테고리</label>
+      <select class="finput" id="ep_cat">${CATEGORIES.map(c=>`<option ${p.category===c?'selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="frow"><label class="flabel">공장</label>
+      <select class="finput" id="ep_factory">
+        <option value="">미지정</option>
+        ${getFactories().map(f=>`<option ${p.factory===f?'selected':''}>${f}</option>`).join('')}
+      </select>
+    </div>
+    <div class="frow"><label class="flabel">컬러</label>
+      <div id="ep_color_chips" class="tag-chips">${_editColors.map(c=>`<span class="tag-chip">${c}<button class="tag-chip-rm" onclick="removeEditColor('${c}')">×</button></span>`).join('')}</div>
+      <div class="tag-input-row"><input type="text" class="tag-input" id="ep_color_in" placeholder="컬러명 입력"><button class="tag-add-btn" onclick="addEditColor()">추가</button></div>
+    </div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">취소</button><button class="btn btn-dark" onclick="saveEditProductInfo()">저장</button></div>`);
+}
+function addEditColor() {
+  const v = document.getElementById('ep_color_in')?.value.trim(); if (!v) return;
+  _editColors.push(v);
+  document.getElementById('ep_color_in').value = '';
+  document.getElementById('ep_color_chips').innerHTML = _editColors.map(c=>`<span class="tag-chip">${c}<button class="tag-chip-rm" onclick="removeEditColor('${c}')">×</button></span>`).join('');
+}
+function removeEditColor(c) {
+  _editColors = _editColors.filter(x=>x!==c);
+  document.getElementById('ep_color_chips').innerHTML = _editColors.map(c=>`<span class="tag-chip">${c}<button class="tag-chip-rm" onclick="removeEditColor('${c}')">×</button></span>`).join('');
+}
+function saveEditProductInfo() {
+  const kr = document.getElementById('ep_kr')?.value.trim();
+  if (!kr) { alert('상품명을 입력해주세요'); return; }
+  CS.child('seasons').child(curSeasonId).child('products').child(curProductId).update({
+    no:          parseInt(document.getElementById('ep_no')?.value)||0,
+    productName_kr: kr,
+    productName_en: document.getElementById('ep_en')?.value.trim(),
+    category:    document.getElementById('ep_cat')?.value,
+    factory:     document.getElementById('ep_factory')?.value,
+    colors:      _editColors,
+    updatedAt:   today()
+  });
+  closeSheet();
+  document.getElementById('costHdrTitle').textContent = kr;
+}
+
+// ══════════════════════════════════════════════════════
+// 현황 (대표 전용)
+// ══════════════════════════════════════════════════════
+function renderSummary() {
+  const c = document.getElementById('summaryBody');
+  if (curRole !== 'owner') { c.innerHTML = lockMsg(); return; }
+  const list = Object.entries(seasons).sort((a,b)=>(b[1].createdAt||'')>(a[1].createdAt||'')?1:-1);
+  if (!list.length) { c.innerHTML = emptyMsg('📊','데이터 없음','시즌을 먼저 추가해주세요'); return; }
+  let html = '';
+  list.forEach(([sid,s]) => {
+    const prods = Object.entries(s.products||{});
+    if (!prods.length) return;
+    const total    = prods.length;
+    const done     = prods.filter(([,p])=>p.status==='확정').length;
+    const reviewing= prods.filter(([,p])=>p.status==='검토중').length;
+    html += `<div class="fsec">
+      <div class="fsec-title">${s.name}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <div style="background:#f8f8f8;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800">${total}</div><div style="font-size:11px;color:#aaa">전체</div></div>
+        <div style="background:#fff0e6;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#c44d00">${reviewing}</div><div style="font-size:11px;color:#c44d00">검토중</div></div>
+        <div style="background:#edfaf1;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#1a7a3c">${done}</div><div style="font-size:11px;color:#1a7a3c">확정</div></div>
+      </div>
+      <div class="sum-wrap">
+        <div class="sum-hdr"><div class="sum-cell">상품명</div><div class="sum-cell num">원가</div><div class="sum-cell num">도매가</div><div class="sum-cell num">소비자가</div></div>`;
+    prods.sort((a,b)=>(a[1].no||999)-(b[1].no||999)).forEach(([pid,p]) => {
+      const ci = p.costItems||{};
+      const sdot = p.status==='확정'?'sd-green':p.status==='검토중'?'sd-orange':'sd-gray';
+      html += `<div class="sum-row" onclick="enterSeason('${sid}');setTimeout(()=>openCostInput('${pid}'),300)">
+        <div class="sum-cell"><span class="status-dot ${sdot}"></span>${p.productName_kr||''}</div>
+        <div class="sum-cell num">${ci.totalCost_toddler>0?fmtNum(ci.totalCost_toddler):'—'}</div>
+        <div class="sum-cell num">${ci.wholesale_toddler>0?fmtNum(ci.wholesale_toddler):'—'}</div>
+        <div class="sum-cell num">${ci.retail_toddler>0?fmtNum(ci.retail_toddler):'—'}</div>
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  c.innerHTML = html || emptyMsg('📊','상품 없음','');
+}
+
+// ══════════════════════════════════════════════════════
+// 내보내기 (대표 전용)
+// ══════════════════════════════════════════════════════
+function renderExport() {
+  const c = document.getElementById('exportBody');
+  if (curRole !== 'owner') { c.innerHTML = lockMsg(); return; }
+  const opts = Object.entries(seasons).map(([sid,s])=>`<option value="${sid}">${s.name}</option>`).join('');
+  c.innerHTML = `
+    <div class="fsec">
+      <div class="fsec-title">시즌 선택</div>
+      <select class="finput" id="exp_season">${opts||'<option value="">시즌 없음</option>'}</select>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">JSON 내보내기</div>
+      <div class="notebox" style="margin-bottom:10px">전체 데이터 백업용. 향후 복원 가능합니다.</div>
+      <button class="btn btn-dark" onclick="exportJSON()">📥 JSON 내보내기</button>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">CSV 내보내기</div>
+      <div class="notebox" style="margin-bottom:10px">엑셀에서 바로 열 수 있는 형태입니다.<br>JEJEUNOSITY_원가단가표.xlsx에 붙여넣기 용이한 형태로 내보냅니다.</div>
+      <button class="btn btn-green" onclick="exportCSV()">📊 CSV 내보내기</button>
+    </div>`;
+}
+
+function exportJSON() {
+  const sid = document.getElementById('exp_season')?.value;
+  const data = { exportedAt: new Date().toISOString(), settings, seasons: sid?{[sid]:seasons[sid]}:seasons };
+  dl(JSON.stringify(data,null,2), `JEJEUNOSITY_원가관리_${today()}.json`, 'application/json');
+}
+
+function exportCSV() {
+  const sid = document.getElementById('exp_season')?.value;
+  const s = sid ? seasons[sid] : null;
+  if (!s) { alert('시즌을 선택해주세요'); return; }
+  const prods = Object.values(s.products||{});
+  if (!prods.length) { alert('상품이 없습니다'); return; }
+  const HDR = ['품번','상품명(한글)','상품명(영문)','카테고리','라인','공장','상태',
+    '원단내역','총원가(토들러)','총원가(주니어)',
+    '도매가(토들러)','도매가(주니어)','소비자가(토들러)','소비자가(주니어)',
+    '일본소비자가(토들러)','일본소비자가(주니어)','중국도매가(토들러)','중국도매가(주니어)'];
+  const rows = prods.sort((a,b)=>(a.no||999)-(b.no||999)).map(p => {
+    const ci = p.costItems||{};
+    const fd = (ci.fabrics||[]).map(f=>`${f.type||''} ${f.supplier||''} @${f.unitPrice||0}원/${f.usage||0}`).join(' | ');
+    return [p.no||'',p.productName_kr||'',p.productName_en||'',p.category||'',
+      p.line==='kids'?'아동':'성인',p.factory||'',p.status||'',fd,
+      ci.totalCost_toddler||0,ci.totalCost_junior||0,
+      ci.wholesale_toddler||0,ci.wholesale_junior||0,
+      ci.retail_toddler||0,ci.retail_junior||0,
+      ci.retail_jpy_toddler||0,ci.retail_jpy_junior||0,
+      ci.wholesale_cny_toddler||0,ci.wholesale_cny_junior||0
+    ].map(v=>`"${v}"`).join(',');
+  });
+  dl('﻿'+[HDR.join(','),...rows].join('\n'),
+    `JEJEUNOSITY_원가단가표_${s.name}_${today()}.csv`, 'text/csv;charset=utf-8;');
+}
+
+function dl(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ══════════════════════════════════════════════════════
+// 설정 (대표 전용)
+// ══════════════════════════════════════════════════════
+function renderSettings() {
+  const c = document.getElementById('settingsBody');
+  if (curRole !== 'owner') { c.innerHTML = lockMsg(); return; }
+  c.innerHTML = `
+    <div class="fsec">
+      <div class="fsec-title">배율 설정</div>
+      <div class="set-row"><div><div class="set-key">원가 → 도매가 배수</div><div class="set-desc">예: 1.8 → 원가×1.8 = 도매가</div></div><input type="number" class="set-input" id="s_mw" value="${settings.markupWholesale}" step="0.1" inputmode="decimal"></div>
+      <div class="set-row"><div><div class="set-key">도매가 → 소비자가 배수</div><div class="set-desc">예: 1.7 → 도매가×1.7 = 소비자가</div></div><input type="number" class="set-input" id="s_mr" value="${settings.markupRetail}" step="0.1" inputmode="decimal"></div>
+      <div class="set-row"><div><div class="set-key">기본 로스율</div><div class="set-desc">예: 0.1 → 10% 손실 가산</div></div><input type="number" class="set-input" id="s_lr" value="${settings.lossRate}" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">환율 설정</div>
+      <div class="set-row"><div><div class="set-key">원/엔 환율 (JPY)</div><div class="set-desc">1엔 = ?원 (예: 9.5)</div></div><input type="number" class="set-input" id="s_jpy" value="${settings.exchangeJPY}" step="0.1" inputmode="decimal"></div>
+      <div class="set-row"><div><div class="set-key">원/위안 환율 (CNY)</div><div class="set-desc">1위안 = ?원 (예: 190)</div></div><input type="number" class="set-input" id="s_cny" value="${settings.exchangeCNY}" step="1" inputmode="numeric"></div>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">가공비 기본값</div>
+      <div class="set-row"><div class="set-key">워싱비 기본값 (원)</div><input type="number" class="set-input" id="s_wash" value="${settings.washingDefault}" inputmode="numeric"></div>
+      <div class="set-row"><div class="set-key">라벨+잡비 기본값 (원)</div><input type="number" class="set-input" id="s_label" value="${settings.labelDefault}" inputmode="numeric"></div>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">공장 목록 관리</div>
+      <div id="factory_chips" class="tag-chips">${getFactories().map(f=>`<span class="tag-chip">${f}<button class="tag-chip-rm" onclick="removeSettingFactory('${f}')">×</button></span>`).join('')}</div>
+      <div class="tag-input-row"><input type="text" class="tag-input" id="s_factory_in" placeholder="공장명 입력"><button class="tag-add-btn" onclick="addSettingFactory()">추가</button></div>
+    </div>
+    <div class="fsec">
+      <div class="fsec-title">아동복 사이즈 목록</div>
+      <div id="kidssz_chips" class="tag-chips">${getKidsSizes().map(sz=>`<span class="tag-chip">${sz}<button class="tag-chip-rm" onclick="removeSettingSize('${sz}')">×</button></span>`).join('')}</div>
+      <div class="tag-input-row"><input type="text" class="tag-input" id="s_kidssz_in" placeholder="사이즈 입력 (예: 150)"><button class="tag-add-btn" onclick="addSettingSize()">추가</button></div>
+    </div>
+    <button class="btn btn-dark" onclick="saveSettingsUI()" style="margin-top:4px">저장</button>`;
+}
+
+function addSettingFactory() {
+  const v = document.getElementById('s_factory_in')?.value.trim(); if (!v) return;
+  if (settings.factories.includes(v)) { showToast('이미 있는 공장입니다'); return; }
+  settings.factories.push(v);
+  document.getElementById('s_factory_in').value = '';
+  document.getElementById('factory_chips').innerHTML = settings.factories.map(f=>`<span class="tag-chip">${f}<button class="tag-chip-rm" onclick="removeSettingFactory('${f}')">×</button></span>`).join('');
+}
+function removeSettingFactory(f) {
+  settings.factories = settings.factories.filter(x=>x!==f);
+  document.getElementById('factory_chips').innerHTML = settings.factories.map(f=>`<span class="tag-chip">${f}<button class="tag-chip-rm" onclick="removeSettingFactory('${f}')">×</button></span>`).join('');
+}
+function addSettingSize() {
+  const v = document.getElementById('s_kidssz_in')?.value.trim(); if (!v) return;
+  if (settings.kidsSizes.includes(v)) { showToast('이미 있는 사이즈입니다'); return; }
+  settings.kidsSizes.push(v);
+  document.getElementById('s_kidssz_in').value = '';
+  document.getElementById('kidssz_chips').innerHTML = settings.kidsSizes.map(sz=>`<span class="tag-chip">${sz}<button class="tag-chip-rm" onclick="removeSettingSize('${sz}')">×</button></span>`).join('');
+}
+function removeSettingSize(sz) {
+  settings.kidsSizes = settings.kidsSizes.filter(x=>x!==sz);
+  document.getElementById('kidssz_chips').innerHTML = settings.kidsSizes.map(sz=>`<span class="tag-chip">${sz}<button class="tag-chip-rm" onclick="removeSettingSize('${sz}')">×</button></span>`).join('');
+}
+
+function saveSettingsUI() {
+  settings.markupWholesale = parseFloat(document.getElementById('s_mw')?.value)   || 1.8;
+  settings.markupRetail    = parseFloat(document.getElementById('s_mr')?.value)   || 1.7;
+  settings.lossRate        = parseFloat(document.getElementById('s_lr')?.value)   || 0.1;
+  settings.exchangeJPY     = parseFloat(document.getElementById('s_jpy')?.value)  || 9.5;
+  settings.exchangeCNY     = parseFloat(document.getElementById('s_cny')?.value)  || 190;
+  settings.washingDefault  = parseFloat(document.getElementById('s_wash')?.value) || 500;
+  settings.labelDefault    = parseFloat(document.getElementById('s_label')?.value)|| 700;
+  // factories and kidsSizes already updated in-memory via add/remove functions
+  CS.child('settings').set(settings);
+  showToast('설정이 저장되었습니다');
+}
+
+function printProduct() {
+  saveCostItems(true);
+  setTimeout(() => window.print(), 400);
+}
+
+// ══════════════════════════════════════════════════════
+// SHEET
+// ══════════════════════════════════════════════════════
+function sheet(title, body) {
+  document.getElementById('sheetBody').innerHTML = `<div class="sheet-title">${title}</div>${body}`;
+  document.getElementById('overlay').classList.add('on');
+}
+function closeSheet() { document.getElementById('overlay').classList.remove('on'); }
+
+// ══════════════════════════════════════════════════════
+// 헬퍼 HTML
+// ══════════════════════════════════════════════════════
+function lockMsg()  { return '<div class="empty"><div class="empty-ico">🔒</div><div class="empty-title">대표만 사용 가능합니다</div></div>'; }
+function emptyMsg(ico, title, desc) { return `<div class="empty"><div class="empty-ico">${ico}</div><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div></div>`; }
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+(function init() {
+  initFirebase();
+  const saved = localStorage.getItem('cs_role');
+  if (saved && ROLE_INFO[saved]) selectRole(saved);
+  else if (saved) localStorage.removeItem('cs_role'); // clear stale role (e.g. old 'factory')
+})();
+</script>
+</body>
+</html>
