@@ -2481,6 +2481,17 @@ dbRef.on('value', snapshot => {
   // Firebase 로드 완료 후 대기 중이던 save 실행
   if(pendingSave){ const w=pendingSave; pendingSave=null; save(w); }
 
+  // 비밀번호를 costsheet/settings에서 미리 로드 (CS 로그인 전에도 적용)
+  if (!window._pwLoaded) {
+    window._pwLoaded = true;
+    CS.child('settings/passwords').once('value', snap => {
+      if (snap.val()) {
+        if (!cs_settings.passwords) cs_settings.passwords = {};
+        Object.assign(cs_settings.passwords, snap.val());
+      }
+    });
+  }
+
   // base64 사진 → Cloudinary 자동 마이그레이션 (1회성)
   migrateBase64Photos();
 
