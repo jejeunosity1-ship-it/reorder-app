@@ -1009,6 +1009,9 @@ function selectRole(role){
     document.getElementById('mainNav').style.display='none';
     document.getElementById('ctxHdr').style.display='none';
     document.getElementById('fab').style.display='none';
+  } else if(role === 'warehouse'){
+    showMainUI();
+    navGo('seasons');
   } else {
     showMainUI();
     navGo('seasons');
@@ -1110,7 +1113,7 @@ function exitToOrders(){
 // ══════════════════════════════════════════
 function renderSeasons(){
   const c=document.getElementById('seasonList');
-  const canAdd = curRole==='store'||curRole===null;
+  const canEdit = curRole==='master'; // 삭제·추가·이름변경은 마스터만
   const html=seasons.map(s=>{
     const all=seasonOrders(s.id), done=all.filter(o=>['warehouse_received','complete'].includes(o.status)).length;
     const pct=all.length>0?Math.round(done/all.length*100):0;
@@ -1124,12 +1127,12 @@ function renderSeasons(){
         <div class="season-prog-bar"><div class="season-prog-fill" style="width:${pct}%"></div></div>
         <div class="season-prog-label">완료 ${done}건 (${pct}%)</div>
       </div>
-      ${canAdd?`<button onclick="event.stopPropagation();openRenameSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#bbb;cursor:pointer;flex-shrink:0" title="시즌명 수정">✏️</button>
+      ${canEdit?`<button onclick="event.stopPropagation();openRenameSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#bbb;cursor:pointer;flex-shrink:0" title="시즌명 수정">✏️</button>
       <button onclick="event.stopPropagation();deleteSeason('${s.id}')" style="background:none;border:none;font-size:20px;padding:10px;color:#ccc;cursor:pointer;flex-shrink:0" title="시즌 삭제">🗑️</button>`:''}
       <div class="season-arrow">›</div>
     </div>`;
   }).join('');
-  c.innerHTML = html + (canAdd?`<div class="add-season-btn" onclick="openNewSeason()">+ 새 시즌 추가</div>`:'');
+  c.innerHTML = html + (canEdit?`<div class="add-season-btn" onclick="openNewSeason()">+ 새 시즌 추가</div>`:'');
   updateAlertBadge();
 }
 
@@ -1180,6 +1183,9 @@ function enterSeason(sid){
   curSubTab='orders';
   document.querySelectorAll('.ctx-subtab').forEach(el=>el.classList.remove('on'));
   document.getElementById('stab-orders').classList.add('on');
+  // 창고직원은 상품 탭 숨김
+  const catalogTab = document.getElementById('stab-catalog');
+  if(catalogTab) catalogTab.style.display = curRole==='warehouse' ? 'none' : '';
   rawShow('orders');
   document.getElementById('ctxHdr').style.display='flex';
   document.getElementById('mainNav').style.display='flex';
