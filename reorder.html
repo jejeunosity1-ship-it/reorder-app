@@ -2481,10 +2481,10 @@ dbRef.on('value', snapshot => {
   // Firebase 로드 완료 후 대기 중이던 save 실행
   if(pendingSave){ const w=pendingSave; pendingSave=null; save(w); }
 
-  // 비밀번호를 costsheet/settings에서 미리 로드 (CS 로그인 전에도 적용)
-  if (!window._pwLoaded) {
-    window._pwLoaded = true;
-    CS.child('settings/passwords').once('value', snap => {
+  // 비밀번호를 costsheet/settings에서 실시간 감시 (다른 기기에서 바꿔도 즉시 반영, 경합 방지)
+  if (!window._pwListenerAdded) {
+    window._pwListenerAdded = true;
+    CS.child('settings/passwords').on('value', snap => {
       if (snap.val()) {
         if (!cs_settings.passwords) cs_settings.passwords = {};
         Object.assign(cs_settings.passwords, snap.val());
@@ -3676,11 +3676,19 @@ function cs_saveSettingsUI() {
   cs_settings.labelDefault    = parseFloat(document.getElementById('s_label')?.value)|| 700;
   // 비밀번호 저장 (빈칸이면 기존 값 유지)
   if (!cs_settings.passwords) cs_settings.passwords = {};
+  const pwToSave = {};
   ['store','designer','warehouse','factory','productdb','master'].forEach(r => {
     const v = document.getElementById(`s_pw_${r}`)?.value.trim();
-    if (v) cs_settings.passwords[r] = v;
+    if (v) { cs_settings.passwords[r] = v; pwToSave[r] = v; }
   });
-  CS.child('settings').set(cs_settings);
+  // 비밀번호 외 설정만 통째 저장 (passwords 통째 덮어쓰기 방지)
+  const settingsNoPw = Object.assign({}, cs_settings);
+  delete settingsNoPw.passwords;
+  CS.child('settings').update(settingsNoPw);
+  // 실제로 입력된 비밀번호만 개별 저장 → 기존 값 절대 안 깨짐
+  if (Object.keys(pwToSave).length) {
+    CS.child('settings/passwords').update(pwToSave);
+  }
   showToast('설정이 저장되었습니다');
 }
 
