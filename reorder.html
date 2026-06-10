@@ -11,6 +11,13 @@
 <title>리오더 관리 — JEJEUNOSITY</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script>
+// gstatic이 막히거나 느려서 안 불러와졌으면 jsdelivr에서 동기적으로 재시도
+if (typeof firebase === 'undefined' || !firebase.database) {
+  document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/firebase@9.22.2/firebase-app-compat.js"><\/scr'+'ipt>');
+  document.write('<scr'+'ipt src="https://cdn.jsdelivr.net/npm/firebase@9.22.2/firebase-database-compat.js"><\/scr'+'ipt>');
+}
+</script>
 <style>
 :root{
   --bg:#F5F0E8;--bg-card:#FDFAF4;--border:#E8E0D0;
@@ -803,14 +810,17 @@ const firebaseConfig = {
   appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
 };
 let db, dbRef, CS;
+let cloudConnected = true; // 실제 클라우드 연결 여부 — 거짓 "동기화됨" 방지용
 try {
-  if(typeof firebase === 'undefined') throw new Error('Firebase 스크립트 로드 실패');
+  if(typeof firebase === 'undefined' || !firebase.database) throw new Error('Firebase 스크립트 로드 실패');
   firebase.initializeApp(firebaseConfig);
   db = firebase.database();
   dbRef = db.ref('jj');
   CS = db.ref('costsheet');
 } catch(e) {
   console.warn('Firebase 초기화 실패, 로컬 전용 모드:', e.message);
+  cloudConnected = false;
+  showOfflineBanner('클라우드 연결 실패 — 이 기기는 다른 기기와 동기화되지 않습니다');
   dbRef = {
     on: (_evt, _cb, errCb) => { if(errCb) errCb(new Error('오프라인')); },
     child: () => ({ set: () => Promise.resolve(), update: () => Promise.resolve(), on: ()=>{}, off: ()=>{} }),
@@ -837,6 +847,13 @@ function save(what='all'){
     localStorage.setItem('jj_products',JSON.stringify(products));
   } catch(e) {
     alert('⚠️ 로컬 저장 실패: 저장공간이 가득 찼습니다.\n💾 헤더의 백업 버튼으로 JSON 백업을 먼저 받으세요.');
+  }
+
+  // 클라우드 미연결이면 여기서 멈춤 — 거짓 "동기화됨" 표시 금지
+  if(!cloudConnected){
+    setSyncStatus('offline');
+    showOfflineBanner('클라우드 연결 실패 — 이 기기의 수정사항은 다른 기기에 반영되지 않습니다');
+    return;
   }
 
   setSyncStatus('syncing');
@@ -2407,6 +2424,25 @@ async function migrateBase64Photos(){
 // ══════════════════════════════════════════
 // FIREBASE SYNC
 // ══════════════════════════════════════════
+function showOfflineBanner(msg){
+  let b=document.getElementById('offlineBanner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='offlineBanner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#C47A6A;color:#fff;'
+      +'font-size:13px;font-weight:700;text-align:center;padding:9px 12px;line-height:1.4;'
+      +'box-shadow:0 2px 8px rgba(0,0,0,.25);cursor:pointer';
+    b.title='탭하면 새로고침';
+    b.onclick=()=>location.reload();
+    document.body.appendChild(b);
+  }
+  b.textContent='⚠ '+(msg||'클라우드 연결 안 됨')+'  · 탭하여 새로고침';
+  b.style.display='block';
+}
+function hideOfflineBanner(){
+  const b=document.getElementById('offlineBanner');
+  if(b) b.style.display='none';
+}
 function setSyncStatus(state){
   const el=document.getElementById('syncStatus'); if(!el) return;
   if(state==='syncing') el.textContent='↑ 동기화중...';
@@ -2475,6 +2511,8 @@ dbRef.on('value', snapshot => {
   }
 
   fbReady = true;
+  cloudConnected = true;
+  hideOfflineBanner();
   setSyncStatus('synced');
   refreshCurrentView();
 
@@ -2506,7 +2544,9 @@ dbRef.on('value', snapshot => {
 
 }, err => {
   console.warn('Firebase 연결 오류, 로컬 캐시 사용:', err.message);
+  cloudConnected = false;
   setSyncStatus('offline');
+  showOfflineBanner('클라우드 연결 끊김 — 다른 기기와 동기화되지 않습니다 (인터넷 확인 후 새로고침)');
   fbReady = true;
 });
 
