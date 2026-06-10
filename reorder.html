@@ -837,9 +837,25 @@ function load(){
   products=JSON.parse(localStorage.getItem('jj_products')||'[]');
   curSeasonId=sessionStorage.getItem('jj_curSeason')||null;
 }
+// 직전에 Firebase와 일치하던 상태 (컬렉션별 id→직렬화문자열).
+// 이 기준선과 비교해 "바뀐 항목"과 "사라진 항목"만 전송 → 다른 기기 데이터 안 건드림.
+let lastSynced = { seasons:{}, orders:{}, products:{} };
+function snapshotBaseline(arr){
+  const m={};
+  (arr||[]).forEach(it=>{ if(it && it.id!=null) m[it.id]=JSON.stringify(it); });
+  return m;
+}
+function rebuildBaseline(){
+  lastSynced = {
+    seasons: snapshotBaseline(seasons),
+    orders:  snapshotBaseline(orders),
+    products: snapshotBaseline(products)
+  };
+}
+
 function save(what='all'){
-  // Firebase 로드 완료 전엔 절대 저장 안 함 — 기존 데이터 덮어쓰기 방지
-  if(!fbReady){ pendingSave=what; return; }
+  // Firebase 로드 완료 전엔 저장 보류 — 원격 데이터 덮어쓰기 방지
+  if(!fbReady){ pendingSave = (pendingSave==='all'||what==='all') ? 'all' : what; return; }
 
   try {
     localStorage.setItem('jj_seasons',JSON.stringify(seasons));
@@ -856,30 +872,45 @@ function save(what='all'){
     return;
   }
 
+  // 대상 컬렉션에서 변경/삭제된 항목만 골라 한 번의 update로 전송
+  const targets = (what==='all') ? ['seasons','orders','products'] : [what];
+  const arrOf = { seasons, orders, products };
+  const updates = {};
+  const sentBaseline = {};
+  let changeCount = 0;
+
+  targets.forEach(coll=>{
+    const arr = arrOf[coll] || [];
+    const cur = {};
+    arr.forEach(it=>{ if(it && it.id!=null) cur[it.id]=it; });
+    const base = lastSynced[coll] || {};
+    // 추가되거나 내용이 바뀐 항목만
+    for(const id in cur){
+      const str = JSON.stringify(cur[id]);
+      if(base[id] !== str){ updates[coll+'/'+id] = cur[id]; changeCount++; }
+    }
+    // 기준선엔 있는데 지금은 없는 항목 = 삭제 (그 항목만 null로 삭제)
+    for(const id in base){
+      if(!(id in cur)){ updates[coll+'/'+id] = null; changeCount++; }
+    }
+    sentBaseline[coll] = snapshotBaseline(arr);
+  });
+
+  if(changeCount===0){ setSyncStatus('synced'); return; }
+
   setSyncStatus('syncing');
-
-  // 변경된 항목만 개별 저장 — 전체 덮어쓰기 방지
-  const promises=[];
-  if(what==='all'||what==='seasons'){
-    const sObj={}; seasons.forEach(s=>sObj[s.id]=s);
-    promises.push(dbRef.child('seasons').set(sObj));
-  }
-  if(what==='all'||what==='orders'){
-    // Cloudinary URL은 짧은 문자열이므로 Firebase에 포함해서 저장 — 기기간 사진 공유
-    const oObj={};
-    orders.forEach(o=>{ oObj[o.id]=o; });
-    promises.push(dbRef.child('orders').set(oObj));
-  }
-  if(what==='all'||what==='products'){
-    // 상품 사진도 Cloudinary URL이므로 Firebase에 포함
-    const pObj={};
-    products.forEach(p=>{ pObj[p.id]=p; });
-    promises.push(dbRef.child('products').set(pObj));
-  }
-
-  Promise.all(promises)
-    .then(()=>setSyncStatus('synced'))
-    .catch(err=>{ console.error('Firebase 저장 실패:', err); setSyncStatus('offline'); });
+  dbRef.update(updates)
+    .then(()=>{
+      // 방금 보낸 컬렉션의 기준선 갱신
+      targets.forEach(coll=>{ lastSynced[coll] = sentBaseline[coll]; });
+      setSyncStatus('synced');
+    })
+    .catch(err=>{
+      console.error('Firebase 저장 실패:', err);
+      cloudConnected = false;
+      setSyncStatus('offline');
+      showOfflineBanner('저장 실패 — 연결 확인 후 새로고침하세요');
+    });
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
@@ -2495,6 +2526,9 @@ dbRef.on('value', snapshot => {
     localStorage.setItem('jj_seasons', JSON.stringify(seasons));
     localStorage.setItem('jj_orders',  JSON.stringify(orders));
     localStorage.setItem('jj_products', JSON.stringify(products));
+
+    // 원격 상태를 받았으니 기준선을 원격과 일치시킨다 (이후 save는 이 기준 대비 변경분만 전송)
+    rebuildBaseline();
   } else if(!fbReady && !seasons.length){
     // 첫 실행, 아무 데이터 없음 — 샘플 데이터 초기화
     const sid1=uid(), sid2=uid();
