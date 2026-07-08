@@ -70,6 +70,7 @@
   .flabel{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:block}
   .finput{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:11px 12px;font-size:15px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit}
   .finput:focus{border-color:var(--accent)}
+  .finput-ro{background:var(--line);color:var(--ink-soft);font-weight:700}
   .frow-2{display:flex;gap:10px}
   .frow-2 .frow{flex:1}
   .calc-hint{font-size:12px;color:var(--ink-soft);margin-top:6px;text-align:right}
@@ -323,7 +324,7 @@ async function openImportSheet(){
   }catch(e){
     console.error(e);
     const statusEl = document.getElementById('importStatus');
-    if(statusEl) statusEl.textContent = '불러오기 실패 — 인터넷 연결 및 계산서 앱 접근 권한을 확인해주세요';
+    if(statusEl) statusEl.textContent = `불러오기 실패 (${e.code||''} ${e.message||e}) — 이 문구를 그대로 캡처해서 보내주세요`;
   }
 }
 function fillFromImport(t){
@@ -395,9 +396,12 @@ function openEntrySheet(id, prefill){
   const combined = e ? e.combined : 'included';
   const recents = getRecentPayers(6);
   const p = prefill || null;
+  const totalVal = e ? e.totalAmount : (p ? p.amount : '');
+  const productVal = e ? e.productAmount : (p ? p.amount : '');
+  const emsVal = e ? e.emsAmount : '';
   sheet(`
     <div class="sheet-title">${id?'EMS 내역 수정':'EMS 입금 내역 등록'}</div>
-    ${p?`<div class="exp-status" style="text-align:left;color:var(--accent);font-weight:700">📥 계산서 앱에서 가져온 내역이에요 — 상품대금·EMS배송비를 나눠 입력해주세요</div>`:''}
+    ${p?`<div class="exp-status" style="text-align:left;color:var(--accent);font-weight:700">📥 계산서 앱에서 가져온 내역이에요 — EMS 배송비만 입력하면 상품대금이 자동 계산돼요</div>`:''}
     ${recents.length&&!id&&!p ? `<div class="chip-row">${recents.map(pn=>`<span class="chip" onclick="quickFillPayer('${escapeAttr(pn)}')">${escapeHtml(pn)}</span>`).join('')}</div>` : ''}
     <div class="frow">
       <label class="flabel">날짜</label>
@@ -415,19 +419,21 @@ function openEntrySheet(id, prefill){
       <div class="seg ${combined==='included'?'on':''}" id="seg_included" onclick="setCombined('included')">상품대금+배송비 포함입금</div>
       <div class="seg ${combined==='separate'?'on':''}" id="seg_separate" onclick="setCombined('separate')">상품대금·배송비 별도입금</div>
     </div>
+    <div class="frow">
+      <label class="flabel">입금총액 (원)</label>
+      <input type="number" inputmode="numeric" class="finput" id="in_total" value="${totalVal}" placeholder="0" oninput="updateCalc('total')">
+    </div>
     <div class="frow-2">
       <div class="frow">
         <label class="flabel">상품대금 (원)</label>
-        <input type="number" inputmode="numeric" class="finput" id="in_product" value="${e?e.productAmount:(p?p.amount:'')}" placeholder="0" oninput="updateCalc()">
+        <input type="number" inputmode="numeric" class="finput" id="in_product" value="${productVal}" placeholder="0" oninput="updateCalc('product')">
       </div>
       <div class="frow">
         <label class="flabel">EMS 배송비 (원)</label>
-        <input type="number" inputmode="numeric" class="finput" id="in_ems" value="${e?e.emsAmount:''}" placeholder="0" oninput="updateCalc()">
+        <input type="number" inputmode="numeric" class="finput" id="in_ems" value="${emsVal}" placeholder="0" oninput="updateCalc('ems')">
       </div>
     </div>
-    <div class="calc-hint">입금 총액(영세율) <b id="calcTotal">${fmt((e?(Number(e.productAmount)+Number(e.emsAmount)):(p?p.amount:0))||0)}</b></div>
-    ${p?`<div class="calc-hint" style="color:var(--ink-soft)">계산서 원본 입금액 ${fmt(p.amount)} — 배송비만큼 상품대금에서 옮겨주세요</div>`:''}
-    <div class="frow" style="margin-top:12px">
+    <div class="frow" style="margin-top:2px">
       <label class="flabel">EMS 영수증 파일명</label>
       <input type="text" class="finput" id="in_receipt" value="${e?escapeAttr(e.receiptFile||''):''}" placeholder="예: EMS_20260708_001.jpg">
     </div>
@@ -441,6 +447,8 @@ function openEntrySheet(id, prefill){
     </div>`);
   window._curCombined = combined || 'included';
   window._pendingImport = p;
+  applyCombinedFieldState();
+  updateCalc();
   setTimeout(()=>document.getElementById(p?'in_ems':'in_payer')?.focus(), 150);
 }
 function quickFillPayer(payer){
@@ -461,12 +469,37 @@ function setCombined(mode){
   window._curCombined = mode;
   document.getElementById('seg_included').classList.toggle('on', mode==='included');
   document.getElementById('seg_separate').classList.toggle('on', mode==='separate');
+  applyCombinedFieldState();
+  updateCalc();
+}
+// 포함입금: 입금총액·배송비 입력 → 상품대금 자동계산 / 별도입금: 상품대금·배송비 입력 → 입금총액 자동계산
+function applyCombinedFieldState(){
+  const mode = window._curCombined || 'included';
+  const totalEl = document.getElementById('in_total');
+  const productEl = document.getElementById('in_product');
+  if(!totalEl || !productEl) return;
+  if(mode === 'included'){
+    totalEl.readOnly = false; totalEl.classList.remove('finput-ro');
+    productEl.readOnly = true; productEl.classList.add('finput-ro');
+  } else {
+    totalEl.readOnly = true; totalEl.classList.add('finput-ro');
+    productEl.readOnly = false; productEl.classList.remove('finput-ro');
+  }
 }
 function updateCalc(){
-  const p = parseFloat(document.getElementById('in_product')?.value) || 0;
-  const s = parseFloat(document.getElementById('in_ems')?.value) || 0;
-  const el = document.getElementById('calcTotal');
-  if(el) el.textContent = fmt(p+s);
+  const mode = window._curCombined || 'included';
+  const totalEl = document.getElementById('in_total');
+  const productEl = document.getElementById('in_product');
+  const emsEl = document.getElementById('in_ems');
+  if(!totalEl || !productEl || !emsEl) return;
+  const ems = parseFloat(emsEl.value) || 0;
+  if(mode === 'included'){
+    const total = parseFloat(totalEl.value) || 0;
+    productEl.value = total - ems;
+  } else {
+    const product = parseFloat(productEl.value) || 0;
+    totalEl.value = product + ems;
+  }
 }
 
 function saveEntry(id){
