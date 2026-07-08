@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EMS 정리장부 — JEJEUNOSITY</title>
+<style>
+  :root{
+    --accent:#2452A6;
+    --accent-soft:#E6EDF8;
+    --bg:#FAF6EF;
+    --card:#FFFFFF;
+    --ink:#26241F;
+    --ink-soft:#8A8578;
+    --line:#EDE7DA;
+    --em:#C24A3B;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
+  body{padding-bottom:100px}
+  .topbar{padding:22px 20px 14px;position:sticky;top:0;background:var(--bg);z-index:10}
+  .brand{font-size:10px;letter-spacing:2.5px;color:var(--ink-soft);font-weight:700;margin-bottom:4px}
+  .title{font-size:23px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+  .title .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
+
+  .hero{margin:6px 20px 14px;background:var(--card);border-radius:20px;padding:20px 22px;border:1px solid var(--line);position:relative;overflow:hidden;display:flex;gap:0}
+  .hero::before{content:'';position:absolute;top:0;left:0;width:5px;height:100%;background:var(--accent)}
+  .hero-stat{flex:1;text-align:center}
+  .hero-stat + .hero-stat{border-left:1px dashed var(--line)}
+  .hero-stat-label{font-size:11px;color:var(--ink-soft);margin-bottom:5px;font-weight:600}
+  .hero-stat-val{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+
+  .toolbar{padding:0 20px 12px;display:flex;gap:8px}
+  .search-input{flex:1;border:1px solid var(--line);border-radius:11px;padding:11px 13px;font-size:13.5px;background:var(--card);color:var(--ink);outline:none;font-family:inherit}
+  .search-input:focus{border-color:var(--accent)}
+  .icon-btn{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:0 14px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;white-space:nowrap}
+
+  .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 22px 10px}
+  .sec-title{font-size:14px;font-weight:800;color:var(--ink)}
+  .sec-count{font-size:12px;color:var(--ink-soft);font-weight:600;margin-left:6px}
+  .add-btn{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px}
+
+  .list{padding:0 20px;display:flex;flex-direction:column;gap:8px}
+  .entry{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;cursor:pointer}
+  .entry-top{display:flex;align-items:center;justify-content:space-between}
+  .entry-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .entry-date{font-size:11px;color:var(--ink-soft);font-weight:600}
+  .entry-vendor{font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entry-payer{font-size:12px;color:var(--ink-soft);font-weight:600}
+  .entry-total{font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;padding-left:12px;font-variant-numeric:tabular-nums;text-align:right}
+  .entry-sub{display:flex;gap:14px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+  .entry-sub-item{font-size:11.5px;color:var(--ink-soft)}
+  .entry-sub-item b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .entry-receipt{margin-top:7px;font-size:11px;color:var(--accent);font-weight:600;display:flex;align-items:center;gap:4px}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft)}
+  .empty-ico{font-size:34px;margin-bottom:10px}
+  .empty-title{font-size:14px;font-weight:700;color:var(--ink)}
+  .empty-desc{font-size:12.5px;margin-top:4px}
+
+  .fab{position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;box-shadow:0 8px 20px rgba(0,0,0,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:20}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,18,14,.4);z-index:30;display:none}
+  .overlay.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));z-index:31;transform:translateY(100%);transition:transform .22s ease;max-height:88vh;overflow-y:auto}
+  .sheet.on{transform:translateY(0)}
+  .sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:0 auto 16px}
+  .sheet-title{font-size:17px;font-weight:800;margin-bottom:14px}
+  .frow{margin-bottom:13px}
+  .flabel{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:block}
+  .finput{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:11px 12px;font-size:15px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit}
+  .finput:focus{border-color:var(--accent)}
+  .frow-2{display:flex;gap:10px}
+  .frow-2 .frow{flex:1}
+  .calc-hint{font-size:12px;color:var(--ink-soft);margin-top:6px;text-align:right}
+  .calc-hint b{color:var(--accent);font-variant-numeric:tabular-nums}
+  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+  .chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--ink-soft);cursor:pointer}
+  .chip:active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+  .btnrow{display:flex;gap:8px;margin-top:16px}
+  .btn{flex:1;border:none;border-radius:11px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer}
+  .btn-ghost{background:var(--bg);color:var(--ink-soft);border:1px solid var(--line)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-danger{background:var(--em);color:#fff}
+  .segrow{display:flex;gap:8px;margin-bottom:14px}
+  .seg{flex:1;text-align:center;padding:10px;border-radius:10px;border:1.5px solid var(--line);font-size:12.5px;font-weight:700;color:var(--ink-soft);cursor:pointer}
+  .seg.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .sync{position:fixed;top:14px;right:16px;font-size:10px;color:var(--ink-soft);z-index:11}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  .exp-status{font-size:12px;color:var(--ink-soft);margin-top:10px;text-align:center;min-height:16px}
+
+  /* ── 내보내기 문서(JPG) 스타일 ── */
+  #exportRender{position:fixed;left:-9999px;top:0;z-index:-1}
+  .edoc{width:860px;background:#fff;padding:52px 56px;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",sans-serif;color:#26241F}
+  .edoc-hdr{border-bottom:3px solid var(--accent);padding-bottom:18px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:baseline}
+  .edoc-brand{font-size:13px;letter-spacing:3px;font-weight:800;color:var(--accent)}
+  .edoc-title{font-size:21px;font-weight:800;letter-spacing:-.3px}
+  .edoc-meta{display:flex;gap:32px;margin-bottom:22px}
+  .edoc-meta div{display:flex;flex-direction:column;gap:4px}
+  .edoc-meta span{font-size:11px;color:#8A8578;font-weight:600}
+  .edoc-meta b{font-size:13.5px;font-weight:800}
+  .edoc-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+  .edoc-table thead th{font-size:11.5px;font-weight:800;color:#fff;background:#26241F;padding:9px 8px;text-align:left;white-space:nowrap}
+  .edoc-table thead th:last-child{text-align:right}
+  .edoc-td{font-size:12px;padding:8px;border-bottom:1px solid #EDE7DA;white-space:nowrap}
+  .edoc-idx{color:#8A8578;width:30px}
+  .edoc-amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .edoc-total-row td{border-bottom:none;padding-top:12px;font-weight:800}
+  .edoc-summary{display:flex;border-top:1.5px solid #26241F;padding-top:16px;margin-top:4px}
+  .edoc-summary div{flex:1;display:flex;flex-direction:column;gap:4px}
+  .edoc-summary span{font-size:11px;color:#8A8578;font-weight:600}
+  .edoc-summary b{font-size:15px;font-weight:800}
+  .edoc-ftr{margin-top:32px;font-size:10.5px;color:#B8B2A2;text-align:center;letter-spacing:.5px}
+</style>
+</head>
+<body>
+
+<div class="sync" id="syncDot"></div>
+
+<div class="topbar">
+  <div class="brand">JEJEUNOSITY</div>
+  <div class="title"><span class="dot"></span>EMS 정리장부</div>
+</div>
+
+<div class="hero">
+  <div class="hero-stat">
+    <div class="hero-stat-label">등록 건수</div>
+    <div class="hero-stat-val" id="statCount">0건</div>
+  </div>
+  <div class="hero-stat">
+    <div class="hero-stat-label">영세율 입금 합계</div>
+    <div class="hero-stat-val" id="statTotal">0원</div>
+  </div>
+  <div class="hero-stat">
+    <div class="hero-stat-label">EMS 배송비 합계</div>
+    <div class="hero-stat-val" id="statEms">0원</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input type="text" class="search-input" id="searchBox" placeholder="거래처명·입금자명 검색" oninput="render()">
+  <button class="icon-btn" onclick="openImportSheet()">📥 계산서에서 가져오기</button>
+  <button class="icon-btn" onclick="openExportSheet()">📤 내보내기</button>
+</div>
+
+<div class="sec-hdr">
+  <div><span class="sec-title">EMS 입금 내역</span><span class="sec-count" id="entryCount"></span></div>
+  <button class="add-btn" onclick="openEntrySheet()">＋ 등록</button>
+</div>
+
+<div class="list" id="list"></div>
+
+<button class="fab" onclick="openEntrySheet()">＋</button>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+<div id="exportRender"></div>
+<datalist id="payerList"></datalist>
+<datalist id="vendorList"></datalist>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+// FIREBASE (jejeunosity-reorder 프로젝트, /ems 경로 — 다른 앱과 데이터 분리)
+// ══════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDTfiNbbleGz69wr8dYqlOp1vyl3-l3sxY",
+  authDomain: "jejeunosity-reorder.firebaseapp.com",
+  databaseURL: "https://jejeunosity-reorder-default-rtdb.firebaseio.com",
+  projectId: "jejeunosity-reorder",
+  storageBucket: "jejeunosity-reorder.firebasestorage.app",
+  messagingSenderId: "1005352974921",
+  appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
+};
+let db, ref;
+try{
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  ref = db.ref('ems');
+}catch(e){ console.warn('Firebase 초기화 실패, 로컬 전용 모드', e); }
+
+// ── 계산서 앱(invoice.html) Firestore — 읽기 전용 연결 (영세율 입금 내역 가져오기용) ──
+const invoiceConfig = {
+  apiKey: "AIzaSyDFqipR0Fzzxdy1JOIB4hUzDU1YwOKLfnA",
+  authDomain: "jejeunosity-1f4e2.firebaseapp.com",
+  projectId: "jejeunosity-1f4e2",
+  storageBucket: "jejeunosity-1f4e2.firebasestorage.app",
+  messagingSenderId: "121831836183",
+  appId: "1:121831836183:web:0d61fb554b7707bece2a52"
+};
+let invoiceDb;
+try{
+  const invoiceApp = firebase.initializeApp(invoiceConfig, 'invoiceApp');
+  invoiceDb = invoiceApp.firestore();
+}catch(e){ console.warn('계산서 앱 연결 실패 (읽기 전용 가져오기 기능 비활성화):', e); }
+
+let state = { entries: {} };
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ return (Math.round(n||0)).toLocaleString() + '원'; }
+function setSyncDot(s){ const el=document.getElementById('syncDot'); if(el) el.textContent = s; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+function loadLocal(){
+  try{ const raw = localStorage.getItem('ems_ledger'); if(raw) state = JSON.parse(raw); }catch(e){}
+}
+function saveLocal(){
+  try{ localStorage.setItem('ems_ledger', JSON.stringify(state)); }catch(e){}
+}
+
+loadLocal();
+render();
+
+if(ref){
+  setSyncDot('연결중...');
+  ref.on('value', snap => {
+    const v = snap.val();
+    if(v) state.entries = v.entries || {};
+    saveLocal();
+    render();
+    setSyncDot('✓ 동기화됨');
+    setTimeout(()=>setSyncDot(''), 1800);
+  }, err => {
+    console.warn('Firebase 연결 오류, 로컬 캐시 사용:', err.message);
+    setSyncDot('오프라인');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// 입금자명 ↔ 거래처명 누적 매핑 (등록할 때마다 자동 학습)
+// ══════════════════════════════════════════════════════
+function buildVendorMap(){
+  const list = Object.values(state.entries||{}).slice().sort((a,b)=> (a._t||0)-(b._t||0));
+  const map = {};
+  list.forEach(e=>{ if(e.payerName) map[e.payerName.trim()] = e.vendorName||''; });
+  return map;
+}
+function getRecentPayers(n){
+  const list = Object.values(state.entries||{}).slice().sort((a,b)=> (b._t||0)-(a._t||0));
+  const seen = new Set(); const out = [];
+  for(const e of list){
+    const key = (e.payerName||'').trim();
+    if(!key || seen.has(key)) continue;
+    seen.add(key); out.push(key);
+    if(out.length>=n) break;
+  }
+  return out;
+}
+function refreshDatalists(){
+  const payers = [...new Set(Object.values(state.entries||{}).map(e=>e.payerName).filter(Boolean))];
+  const vendors = [...new Set(Object.values(state.entries||{}).map(e=>e.vendorName).filter(Boolean))];
+  document.getElementById('payerList').innerHTML = payers.map(p=>`<option value="${escapeAttr(p)}">`).join('');
+  document.getElementById('vendorList').innerHTML = vendors.map(v=>`<option value="${escapeAttr(v)}">`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// 계산서 앱(invoice.html) 영세율 입금 내역 가져오기 (읽기 전용)
+// ══════════════════════════════════════════════════════
+async function fetchZeroRateDeposits(){
+  if(!invoiceDb) throw new Error('계산서 앱 연결이 되어있지 않아요');
+  const monthsSnap = await invoiceDb.collection('invoice').doc('months').get();
+  if(!monthsSnap.exists) return [];
+  let all = {};
+  try{ all = JSON.parse(monthsSnap.data().v || '{}'); }catch(e){ all = {}; }
+  const list = [];
+  Object.entries(all).forEach(([mk, month])=>{
+    (month.txs||[]).forEach(tx=>{
+      if(tx.category==='zero' && Number(tx.recv)>0){
+        const grp = (month.groups||{})[tx.groupKey] || {};
+        list.push({
+          txId: `${mk}_${tx.id}`,
+          date: tx.date,
+          payerName: tx.name || '',
+          vendorName: grp.bizName || '',
+          amount: Number(tx.recv)||0
+        });
+      }
+    });
+  });
+  list.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  return list;
+}
+function alreadyImportedIds(){
+  return new Set(Object.values(state.entries||{}).map(e=>e.sourceTxId).filter(Boolean));
+}
+async function openImportSheet(){
+  sheet(`
+    <div class="sheet-title">계산서 앱에서 영세율 입금 가져오기</div>
+    <div class="exp-status" id="importStatus">불러오는 중...</div>
+    <div class="list" id="importList" style="padding:0"></div>
+    <div class="btnrow"><button class="btn btn-ghost" onclick="closeSheet()">닫기</button></div>`);
+  try{
+    const all = await fetchZeroRateDeposits();
+    const done = alreadyImportedIds();
+    const pending = all.filter(t => !done.has(t.txId));
+    const statusEl = document.getElementById('importStatus');
+    const listEl = document.getElementById('importList');
+    if(!statusEl || !listEl) return; // 시트가 이미 닫힘
+    if(!pending.length){
+      statusEl.textContent = all.length ? '새로 가져올 영세율 입금 내역이 없어요 (전부 등록됨)' : '계산서 앱에 영세율로 분류된 입금 내역이 없어요';
+      return;
+    }
+    statusEl.textContent = `${pending.length}건 — 탭해서 등록하세요`;
+    listEl.innerHTML = pending.map(t => `
+      <div class="entry" onclick='fillFromImport(${JSON.stringify(t).replace(/'/g,"&#39;")})'>
+        <div class="entry-top">
+          <div class="entry-left">
+            <div class="entry-date">${t.date||''}</div>
+            <div class="entry-vendor">${escapeHtml(t.vendorName||'(상호 미등록)')}</div>
+            <div class="entry-payer">입금자: ${escapeHtml(t.payerName||'-')}</div>
+          </div>
+          <div class="entry-total">${fmt(t.amount)}</div>
+        </div>
+      </div>`).join('');
+  }catch(e){
+    console.error(e);
+    const statusEl = document.getElementById('importStatus');
+    if(statusEl) statusEl.textContent = '불러오기 실패 — 인터넷 연결 및 계산서 앱 접근 권한을 확인해주세요';
+  }
+}
+function fillFromImport(t){
+  window._pendingImport = t;
+  openEntrySheet(null, t);
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function render(){
+  refreshDatalists();
+  const q = (document.getElementById('searchBox')?.value||'').trim().toLowerCase();
+  let entries = Object.entries(state.entries || {}).map(([id,e])=>({id, ...e}));
+  entries.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b._t||0)-(a._t||0));
+  if(q){
+    entries = entries.filter(e => (e.vendorName||'').toLowerCase().includes(q) || (e.payerName||'').toLowerCase().includes(q));
+  }
+
+  const totalAll = Object.values(state.entries||{}).reduce((s,e)=> s+(Number(e.totalAmount)||0), 0);
+  const emsAll = Object.values(state.entries||{}).reduce((s,e)=> s+(Number(e.emsAmount)||0), 0);
+  document.getElementById('statCount').textContent = `${Object.keys(state.entries||{}).length}건`;
+  document.getElementById('statTotal').textContent = fmt(totalAll);
+  document.getElementById('statEms').textContent = fmt(emsAll);
+  document.getElementById('entryCount').textContent = entries.length ? `${entries.length}건` : '';
+
+  const list = document.getElementById('list');
+  if(!entries.length){
+    list.innerHTML = `<div class="empty"><div class="empty-ico">📦</div><div class="empty-title">${q?'검색 결과가 없어요':'아직 등록된 내역이 없어요'}</div><div class="empty-desc">${q?'':'우측 하단 ＋ 버튼으로 EMS 입금 내역을 등록하세요'}</div></div>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => `
+    <div class="entry" onclick="openEntrySheet('${e.id}')">
+      <div class="entry-top">
+        <div class="entry-left">
+          <div class="entry-date">${e.date||''}</div>
+          <div class="entry-vendor">${escapeHtml(e.vendorName||'(거래처 미입력)')}</div>
+          <div class="entry-payer">입금자: ${escapeHtml(e.payerName||'-')}</div>
+        </div>
+        <div class="entry-total">${fmt(e.totalAmount)}</div>
+      </div>
+      <div class="entry-sub">
+        <div class="entry-sub-item">상품대금 <b>${fmt(e.productAmount)}</b></div>
+        <div class="entry-sub-item">EMS배송비 <b>${fmt(e.emsAmount)}</b></div>
+        <div class="entry-sub-item">${e.combined==='separate'?'별도입금':'포함입금'}</div>
+      </div>
+      ${e.receiptFile?`<div class="entry-receipt">📎 ${escapeHtml(e.receiptFile)}</div>`:''}
+      ${e.sourceTxId?`<div class="entry-receipt" style="color:var(--ink-soft)">🔗 계산서 연동</div>`:''}
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// SHEETS
+// ══════════════════════════════════════════════════════
+function sheet(html){
+  document.getElementById('sheet').innerHTML = `<div class="sheet-handle"></div>` + html;
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+  window._pendingImport = null;
+}
+
+function openEntrySheet(id, prefill){
+  const e = id ? state.entries[id] : null;
+  const today = new Date().toISOString().slice(0,10);
+  const combined = e ? e.combined : 'included';
+  const recents = getRecentPayers(6);
+  const p = prefill || null;
+  sheet(`
+    <div class="sheet-title">${id?'EMS 내역 수정':'EMS 입금 내역 등록'}</div>
+    ${p?`<div class="exp-status" style="text-align:left;color:var(--accent);font-weight:700">📥 계산서 앱에서 가져온 내역이에요 — 상품대금·EMS배송비를 나눠 입력해주세요</div>`:''}
+    ${recents.length&&!id&&!p ? `<div class="chip-row">${recents.map(pn=>`<span class="chip" onclick="quickFillPayer('${escapeAttr(pn)}')">${escapeHtml(pn)}</span>`).join('')}</div>` : ''}
+    <div class="frow">
+      <label class="flabel">날짜</label>
+      <input type="date" class="finput" id="in_date" value="${e?e.date:(p?p.date:today)}">
+    </div>
+    <div class="frow">
+      <label class="flabel">입금자명 (통장에 찍히는 이름)</label>
+      <input type="text" class="finput" id="in_payer" list="payerList" value="${e?escapeAttr(e.payerName||''):(p?escapeAttr(p.payerName||''):'')}" placeholder="예: 홍길동" oninput="onPayerInput()">
+    </div>
+    <div class="frow">
+      <label class="flabel">거래처명 (상호)</label>
+      <input type="text" class="finput" id="in_vendor" list="vendorList" value="${e?escapeAttr(e.vendorName||''):(p?escapeAttr(p.vendorName||''):'')}" placeholder="예: OO상사">
+    </div>
+    <div class="segrow">
+      <div class="seg ${combined==='included'?'on':''}" id="seg_included" onclick="setCombined('included')">상품대금+배송비 포함입금</div>
+      <div class="seg ${combined==='separate'?'on':''}" id="seg_separate" onclick="setCombined('separate')">상품대금·배송비 별도입금</div>
+    </div>
+    <div class="frow-2">
+      <div class="frow">
+        <label class="flabel">상품대금 (원)</label>
+        <input type="number" inputmode="numeric" class="finput" id="in_product" value="${e?e.productAmount:(p?p.amount:'')}" placeholder="0" oninput="updateCalc()">
+      </div>
+      <div class="frow">
+        <label class="flabel">EMS 배송비 (원)</label>
+        <input type="number" inputmode="numeric" class="finput" id="in_ems" value="${e?e.emsAmount:''}" placeholder="0" oninput="updateCalc()">
+      </div>
+    </div>
+    <div class="calc-hint">입금 총액(영세율) <b id="calcTotal">${fmt((e?(Number(e.productAmount)+Number(e.emsAmount)):(p?p.amount:0))||0)}</b></div>
+    ${p?`<div class="calc-hint" style="color:var(--ink-soft)">계산서 원본 입금액 ${fmt(p.amount)} — 배송비만큼 상품대금에서 옮겨주세요</div>`:''}
+    <div class="frow" style="margin-top:12px">
+      <label class="flabel">EMS 영수증 파일명</label>
+      <input type="text" class="finput" id="in_receipt" value="${e?escapeAttr(e.receiptFile||''):''}" placeholder="예: EMS_20260708_001.jpg">
+    </div>
+    <div class="frow">
+      <label class="flabel">메모 (선택)</label>
+      <input type="text" class="finput" id="in_memo" value="${e?escapeAttr(e.memo||''):''}" placeholder="특이사항">
+    </div>
+    <div class="btnrow">
+      ${id?`<button class="btn btn-danger" onclick="deleteEntry('${id}')">삭제</button>`:`<button class="btn btn-ghost" onclick="closeSheet()">취소</button>`}
+      <button class="btn btn-dark" onclick="saveEntry(${id?`'${id}'`:'null'})">저장</button>
+    </div>`);
+  window._curCombined = combined || 'included';
+  window._pendingImport = p;
+  setTimeout(()=>document.getElementById(p?'in_ems':'in_payer')?.focus(), 150);
+}
+function quickFillPayer(payer){
+  document.getElementById('in_payer').value = payer;
+  onPayerInput();
+  document.getElementById('in_product')?.focus();
+}
+function onPayerInput(){
+  const payer = document.getElementById('in_payer')?.value.trim();
+  if(!payer) return;
+  const map = buildVendorMap();
+  const vendorInput = document.getElementById('in_vendor');
+  if(map[payer] && vendorInput && !vendorInput.value.trim()){
+    vendorInput.value = map[payer];
+  }
+}
+function setCombined(mode){
+  window._curCombined = mode;
+  document.getElementById('seg_included').classList.toggle('on', mode==='included');
+  document.getElementById('seg_separate').classList.toggle('on', mode==='separate');
+}
+function updateCalc(){
+  const p = parseFloat(document.getElementById('in_product')?.value) || 0;
+  const s = parseFloat(document.getElementById('in_ems')?.value) || 0;
+  const el = document.getElementById('calcTotal');
+  if(el) el.textContent = fmt(p+s);
+}
+
+function saveEntry(id){
+  const date = document.getElementById('in_date').value;
+  const payerName = document.getElementById('in_payer').value.trim();
+  const vendorName = document.getElementById('in_vendor').value.trim();
+  const productAmount = parseFloat(document.getElementById('in_product').value) || 0;
+  const emsAmount = parseFloat(document.getElementById('in_ems').value) || 0;
+  const receiptFile = document.getElementById('in_receipt').value.trim();
+  const memo = document.getElementById('in_memo').value.trim();
+  const combined = window._curCombined || 'included';
+
+  if(!date || !payerName || (!productAmount && !emsAmount)){
+    showToast('날짜·입금자명·금액은 필수예요'); return;
+  }
+  const totalAmount = productAmount + emsAmount;
+  const eid = id || uid();
+  const sourceTxId = (window._pendingImport && window._pendingImport.txId) || (id ? state.entries[id]?.sourceTxId : undefined) || null;
+  const entry = { date, payerName, vendorName, productAmount, emsAmount, totalAmount, combined, receiptFile, memo, sourceTxId, _t: Date.now() };
+  if(!state.entries) state.entries = {};
+  state.entries[eid] = entry;
+  saveLocal(); render(); closeSheet();
+  if(ref) ref.child('entries').child(eid).set(entry);
+  window._pendingImport = null;
+  showToast(id ? '내역이 수정되었습니다' : 'EMS 내역이 등록되었습니다');
+}
+function deleteEntry(id){
+  delete state.entries[id];
+  saveLocal(); render(); closeSheet();
+  if(ref) ref.child('entries').child(id).remove();
+  showToast('내역이 삭제되었습니다');
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('on'), 1800);
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORT — 엑셀 / JPG
+// ══════════════════════════════════════════════════════
+function openExportSheet(){
+  const today = new Date().toISOString().slice(0,10);
+  const firstOfMonth = today.slice(0,8) + '01';
+  sheet(`
+    <div class="sheet-title">내보내기</div>
+    <div class="frow">
+      <label class="flabel">시작일</label>
+      <input type="date" class="finput" id="exp_start" value="${firstOfMonth}">
+    </div>
+    <div class="frow">
+      <label class="flabel">종료일</label>
+      <input type="date" class="finput" id="exp_end" value="${today}">
+    </div>
+    <div class="btnrow">
+      <button class="btn btn-ghost" onclick="doExport('excel')">엑셀로 저장</button>
+      <button class="btn btn-dark" onclick="doExport('jpg')">JPG로 저장</button>
+    </div>
+    <div class="exp-status" id="exportStatus"></div>`);
+}
+
+function getRangeEntries(start, end){
+  const entries = Object.values(state.entries||{}).filter(e => e.date >= start && e.date <= end);
+  entries.sort((a,b)=> a.date.localeCompare(b.date));
+  return entries;
+}
+
+function doExport(type){
+  const start = document.getElementById('exp_start').value;
+  const end = document.getElementById('exp_end').value;
+  const statusEl = document.getElementById('exportStatus');
+  if(!start || !end){ if(statusEl) statusEl.textContent = '시작일과 종료일을 선택해주세요'; return; }
+  const entries = getRangeEntries(start, end);
+  if(!entries.length){ if(statusEl) statusEl.textContent = '해당 기간에 등록된 내역이 없어요'; return; }
+
+  if(type==='excel') exportExcel(entries, start, end, statusEl);
+  else exportJpg(entries, start, end, statusEl);
+}
+
+function exportExcel(entries, start, end, statusEl){
+  if(typeof XLSX === 'undefined'){ if(statusEl) statusEl.textContent = '엑셀 라이브러리를 불러오지 못했어요'; return; }
+  if(statusEl) statusEl.textContent = '엑셀 파일을 만드는 중...';
+  const rows = entries.map(e => ({
+    '날짜': e.date,
+    '입금자명': e.payerName||'',
+    '거래처명': e.vendorName||'',
+    '상품대금': e.productAmount||0,
+    'EMS배송비': e.emsAmount||0,
+    '입금총액': e.totalAmount||0,
+    '입금구분': e.combined==='separate'?'별도입금':'포함입금',
+    'EMS영수증파일명': e.receiptFile||'',
+    '메모': e.memo||''
+  }));
+  const totalRow = { '날짜':'합계', '입금자명':'', '거래처명':'',
+    '상품대금': entries.reduce((s,e)=>s+(Number(e.productAmount)||0),0),
+    'EMS배송비': entries.reduce((s,e)=>s+(Number(e.emsAmount)||0),0),
+    '입금총액': entries.reduce((s,e)=>s+(Number(e.totalAmount)||0),0),
+    '입금구분':'', 'EMS영수증파일명':'', '메모':'' };
+  rows.push(totalRow);
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:11},{wch:12},{wch:16},{wch:11},{wch:11},{wch:11},{wch:11},{wch:22},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'EMS정리');
+  XLSX.writeFile(wb, `EMS정리_${start}_${end}.xlsx`);
+  if(statusEl) statusEl.textContent = '엑셀 파일이 저장되었습니다';
+  setTimeout(()=>closeSheet(), 700);
+}
+
+function exportJpg(entries, start, end, statusEl){
+  if(typeof html2canvas === 'undefined'){ if(statusEl) statusEl.textContent = '이미지 생성 라이브러리를 불러오지 못했어요'; return; }
+  if(statusEl) statusEl.textContent = '이미지를 만드는 중...';
+
+  const totalProduct = entries.reduce((s,e)=>s+(Number(e.productAmount)||0),0);
+  const totalEms = entries.reduce((s,e)=>s+(Number(e.emsAmount)||0),0);
+  const totalAll = entries.reduce((s,e)=>s+(Number(e.totalAmount)||0),0);
+
+  const rows = entries.map((e,i)=>`
+    <tr>
+      <td class="edoc-td edoc-idx">${i+1}</td>
+      <td class="edoc-td">${e.date}</td>
+      <td class="edoc-td">${escapeHtml(e.payerName||'-')}</td>
+      <td class="edoc-td">${escapeHtml(e.vendorName||'-')}</td>
+      <td class="edoc-td edoc-amt">${fmt(e.productAmount)}</td>
+      <td class="edoc-td edoc-amt">${fmt(e.emsAmount)}</td>
+      <td class="edoc-td edoc-amt">${fmt(e.totalAmount)}</td>
+    </tr>`).join('');
+
+  document.getElementById('exportRender').innerHTML = `
+    <div class="edoc" id="edocRoot">
+      <div class="edoc-hdr">
+        <div class="edoc-brand">JEJEUNOSITY</div>
+        <div class="edoc-title">EMS 영세율 정리서</div>
+      </div>
+      <div class="edoc-meta">
+        <div><span>정리 기간</span><b>${start} ~ ${end}</b></div>
+        <div><span>발행일</span><b>${new Date().toISOString().slice(0,10)}</b></div>
+        <div><span>건수</span><b>${entries.length}건</b></div>
+      </div>
+      <table class="edoc-table">
+        <thead><tr><th>No</th><th>날짜</th><th>입금자명</th><th>거래처명</th><th>상품대금</th><th>EMS배송비</th><th>입금총액</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr class="edoc-total-row">
+            <td class="edoc-td" colspan="4">합계</td>
+            <td class="edoc-td edoc-amt">${fmt(totalProduct)}</td>
+            <td class="edoc-td edoc-amt">${fmt(totalEms)}</td>
+            <td class="edoc-td edoc-amt">${fmt(totalAll)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="edoc-summary">
+        <div><span>상품대금 합계</span><b>${fmt(totalProduct)}</b></div>
+        <div><span>EMS 배송비 합계</span><b>${fmt(totalEms)}</b></div>
+        <div><span>영세율 입금 총액</span><b>${fmt(totalAll)}</b></div>
+      </div>
+      <div class="edoc-ftr">JEJEUNOSITY EMS 정리장부</div>
+    </div>`;
+
+  setTimeout(()=>{
+    const target = document.getElementById('edocRoot');
+    html2canvas(target, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
+      const link = document.createElement('a');
+      link.download = `EMS정리_${start}_${end}.jpg`;
+      link.href = canvas.toDataURL('image/jpeg', 0.95);
+      link.click();
+      if(statusEl) statusEl.textContent = '이미지가 저장되었습니다';
+      setTimeout(()=>closeSheet(), 700);
+    }).catch(err=>{
+      console.error(err);
+      if(statusEl) statusEl.textContent = '내보내기 중 오류가 발생했습니다';
+    });
+  }, 80);
+}
+</script>
+</body>
+</html>
