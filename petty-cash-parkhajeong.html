@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>박하정 시제장부 — JEJEUNOSITY</title>
+<style>
+  :root{
+    --accent:#5B4B8A;
+    --accent-soft:#EDE9F5;
+    --bg:#FAF6EF;
+    --card:#FFFFFF;
+    --ink:#26241F;
+    --ink-soft:#8A8578;
+    --line:#EDE7DA;
+    --expense:#C24A3B;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
+  body{padding-bottom:100px}
+  .topbar{padding:22px 20px 14px;position:sticky;top:0;background:var(--bg);z-index:10}
+  .brand{font-size:10px;letter-spacing:2.5px;color:var(--ink-soft);font-weight:700;margin-bottom:4px}
+  .title{font-size:23px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+  .title .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
+
+  .hero{margin:6px 20px 18px;background:var(--card);border-radius:20px;padding:26px 22px;border:1px solid var(--line);position:relative;overflow:hidden}
+  .hero::before{content:'';position:absolute;top:0;left:0;width:5px;height:100%;background:var(--accent)}
+  .hero-label{font-size:12px;color:var(--ink-soft);font-weight:600;margin-bottom:6px}
+  .hero-balance{font-size:34px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .hero-sub{display:flex;gap:18px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line)}
+  .hero-stat{flex:1}
+  .hero-stat-label{font-size:11px;color:var(--ink-soft);margin-bottom:3px;font-weight:600}
+  .hero-stat-val{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+  .export-row{margin:0 20px 18px}
+  .export-btn{width:100%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px;font-size:13.5px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+  .export-btn:active{background:var(--accent-soft)}
+  .hero-warn{margin-top:10px;font-size:12.5px;font-weight:700;padding:8px 12px;border-radius:9px;display:none}
+  .hero-warn.low{display:block;background:#FBF0DD;color:#96690F}
+  .hero-warn.empty{display:block;background:#FBEAE6;color:var(--expense)}
+
+  .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 22px 10px}
+  .sec-title{font-size:14px;font-weight:800;color:var(--ink)}
+  .sec-count{font-size:12px;color:var(--ink-soft);font-weight:600;margin-left:6px}
+  .add-btn{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px}
+
+  .list{padding:0 20px;display:flex;flex-direction:column;gap:8px}
+  .entry{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer}
+  .entry-left{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .entry-date{font-size:11px;color:var(--ink-soft);font-weight:600}
+  .entry-vendor{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entry-amt{font-size:15px;font-weight:800;color:var(--expense);flex-shrink:0;padding-left:12px;font-variant-numeric:tabular-nums}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft)}
+  .empty-ico{font-size:34px;margin-bottom:10px}
+  .empty-title{font-size:14px;font-weight:700;color:var(--ink)}
+  .empty-desc{font-size:12.5px;margin-top:4px}
+
+  .fab{position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;box-shadow:0 8px 20px rgba(0,0,0,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:20}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,18,14,.4);z-index:30;display:none}
+  .overlay.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));z-index:31;transform:translateY(100%);transition:transform .22s ease;max-height:85vh;overflow-y:auto}
+  .sheet.on{transform:translateY(0)}
+  .sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:0 auto 16px}
+  .sheet-title{font-size:17px;font-weight:800;margin-bottom:16px}
+  .frow{margin-bottom:14px}
+  .flabel{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:block}
+  .finput{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-size:15px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit}
+  .finput:focus{border-color:var(--accent)}
+  .btnrow{display:flex;gap:8px;margin-top:18px}
+  .btn{flex:1;border:none;border-radius:11px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer}
+  .btn-ghost{background:var(--bg);color:var(--ink-soft);border:1px solid var(--line)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-danger{background:var(--expense);color:#fff}
+
+  .sync{position:fixed;top:14px;right:16px;font-size:10px;color:var(--ink-soft);z-index:11}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+
+  /* ── 정산서(내보내기용) 문서 스타일 ── */
+  #exportRender{position:fixed;left:-9999px;top:0;z-index:-1}
+  .edoc{width:720px;background:#fff;padding:56px 60px;font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",sans-serif;color:#26241F}
+  .edoc-hdr{border-bottom:3px solid var(--accent);padding-bottom:20px;margin-bottom:26px;display:flex;justify-content:space-between;align-items:baseline}
+  .edoc-brand{font-size:13px;letter-spacing:3px;font-weight:800;color:var(--accent)}
+  .edoc-title{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .edoc-meta{display:flex;gap:36px;margin-bottom:26px}
+  .edoc-meta div{display:flex;flex-direction:column;gap:4px}
+  .edoc-meta span{font-size:11px;color:#8A8578;font-weight:600}
+  .edoc-meta b{font-size:14px;font-weight:800}
+  .edoc-table{width:100%;border-collapse:collapse;margin-bottom:22px}
+  .edoc-table thead th{font-size:12px;font-weight:800;color:#fff;background:#26241F;padding:11px 10px;text-align:left}
+  .edoc-table thead th:first-child{border-radius:6px 0 0 0}
+  .edoc-table thead th:last-child{border-radius:0 6px 0 0;text-align:right}
+  .edoc-td{font-size:13px;padding:10px;border-bottom:1px solid #EDE7DA}
+  .edoc-idx{color:#8A8578;width:36px}
+  .edoc-amt{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .edoc-total-label{text-align:right;font-weight:800;border-bottom:none;padding-top:14px}
+  .edoc-total-val{border-bottom:none;padding-top:14px;font-size:15px;color:var(--accent)}
+  .edoc-summary{display:flex;gap:0;border-top:1.5px solid #26241F;padding-top:18px;margin-top:6px}
+  .edoc-summary div{flex:1;display:flex;flex-direction:column;gap:4px}
+  .edoc-summary span{font-size:11px;color:#8A8578;font-weight:600}
+  .edoc-summary b{font-size:16px;font-weight:800}
+  .edoc-ftr{margin-top:36px;font-size:10.5px;color:#B8B2A2;text-align:center;letter-spacing:.5px}
+  .exp-status{font-size:12px;color:var(--ink-soft);margin-top:10px;text-align:center;min-height:16px}
+</style>
+</head>
+<body>
+
+<div class="sync" id="syncDot"></div>
+
+<div class="topbar">
+  <div class="brand">JEJEUNOSITY</div>
+  <div class="title"><span class="dot"></span>박하정 시제장부</div>
+</div>
+
+<div class="hero">
+  <div class="hero-label">현재 잔액</div>
+  <div class="hero-balance" id="balanceVal">0원</div>
+  <div class="hero-warn" id="heroWarn"></div>
+  <div class="hero-sub">
+    <div class="hero-stat">
+      <div class="hero-stat-label">누적 시제금</div>
+      <div class="hero-stat-val" id="startVal">0원</div>
+    </div>
+    <div class="hero-stat">
+      <div class="hero-stat-label">총 지출</div>
+      <div class="hero-stat-val" id="spentVal">0원</div>
+    </div>
+  </div>
+</div>
+
+<div class="export-row">
+  <button class="export-btn" onclick="openExportSheet()">📤 기간별 정산서 내보내기 (JPG · PDF)</button>
+</div>
+
+<div class="sec-hdr">
+  <div><span class="sec-title">시제금 충전 내역</span><span class="sec-count" id="topupCount"></span></div>
+  <button class="add-btn" onclick="openTopupSheet()">＋ 충전 추가</button>
+</div>
+
+<div class="list" id="topupList"></div>
+
+<div class="sec-hdr">
+  <div><span class="sec-title">샘플비 내역</span><span class="sec-count" id="entryCount"></span></div>
+  <button class="add-btn" onclick="openEntrySheet()">＋ 내역 추가</button>
+</div>
+
+<div class="list" id="list"></div>
+
+<button class="fab" onclick="openEntrySheet()">＋</button>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+<div id="exportRender"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDTfiNbbleGz69wr8dYqlOp1vyl3-l3sxY",
+  authDomain: "jejeunosity-reorder.firebaseapp.com",
+  databaseURL: "https://jejeunosity-reorder-default-rtdb.firebaseio.com",
+  projectId: "jejeunosity-reorder",
+  storageBucket: "jejeunosity-reorder.firebasestorage.app",
+  messagingSenderId: "1005352974921",
+  appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
+};
+const PATH = 'pettycash/parkhajeong';
+let db, ref, cloudConnected = false;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  ref = db.ref(PATH);
+} catch(e) {
+  console.warn('Firebase 초기화 실패, 로컬 전용 모드', e);
+}
+
+let state = { topups: {}, entries: {} };
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ return (Math.round(n||0)).toLocaleString() + '원'; }
+function setSyncDot(s){ const el=document.getElementById('syncDot'); if(el) el.textContent = s; }
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem('pettycash_' + 'parkhajeong');
+    if(raw) state = JSON.parse(raw);
+  }catch(e){}
+}
+function saveLocal(){
+  try{ localStorage.setItem('pettycash_' + 'parkhajeong', JSON.stringify(state)); }catch(e){}
+}
+
+// 예전 버전(단일 시제금 값)에서 넘어온 데이터를 충전 내역 1건으로 자동 변환
+function migrateLegacy(v){
+  if(v && v.startAmount && !(v.topups && Object.keys(v.topups).length)){
+    const id = uid();
+    v.topups = { [id]: { date: '2026-01-01', amount: v.startAmount, note: '초기 시제금(자동 이관)', _t: 0 } };
+  }
+  return v;
+}
+
+loadLocal();
+render();
+
+if(ref){
+  setSyncDot('연결중...');
+  ref.on('value', snap => {
+    let v = snap.val();
+    if(v){
+      v = migrateLegacy(v);
+      state.topups = v.topups || {};
+      state.entries = v.entries || {};
+    }
+    cloudConnected = true;
+    saveLocal();
+    render();
+    setSyncDot('✓ 동기화됨');
+    setTimeout(()=>setSyncDot(''), 1800);
+  }, err => {
+    console.warn('Firebase 연결 오류, 로컬 캐시 사용:', err.message);
+    cloudConnected = false;
+    setSyncDot('오프라인');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function render(){
+  const entries = Object.entries(state.entries || {}).map(([id,e])=>({id, ...e}));
+  entries.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b._t||0)-(a._t||0));
+  const topups = Object.entries(state.topups || {}).map(([id,t])=>({id, ...t}));
+  topups.sort((a,b)=> (b.date||'').localeCompare(a.date||'') || (b._t||0)-(a._t||0));
+
+  const totalCash = topups.reduce((s,t)=> s + (Number(t.amount)||0), 0);
+  const spent = entries.reduce((s,e)=> s + (Number(e.amount)||0), 0);
+  const balance = totalCash - spent;
+
+  document.getElementById('balanceVal').textContent = fmt(balance);
+  const warnEl = document.getElementById('heroWarn');
+  if(balance <= 0){
+    warnEl.className = 'hero-warn empty';
+    warnEl.textContent = '⚠️ 잔액이 없어요. 시제금 충전이 필요해요';
+  } else if(balance < 50000){
+    warnEl.className = 'hero-warn low';
+    warnEl.textContent = `잔액이 얼마 남지 않았어요 (${fmt(balance)}). 곧 충전을 준비해주세요`;
+  } else {
+    warnEl.className = 'hero-warn';
+    warnEl.textContent = '';
+  }
+  document.getElementById('startVal').textContent = fmt(totalCash);
+  document.getElementById('spentVal').textContent = fmt(spent);
+  document.getElementById('entryCount').textContent = entries.length ? `${entries.length}건` : '';
+  document.getElementById('topupCount').textContent = topups.length ? `${topups.length}건` : '';
+
+  const topupList = document.getElementById('topupList');
+  if(!topups.length){
+    topupList.innerHTML = `<div class="empty"><div class="empty-ico">💰</div><div class="empty-title">충전 내역이 없어요</div><div class="empty-desc">"＋ 충전 추가"로 시제금을 입금한 날짜와 금액을 기록하세요</div></div>`;
+  } else {
+    topupList.innerHTML = topups.map(t => `
+      <div class="entry" onclick="openTopupSheet('${t.id}')">
+        <div class="entry-left">
+          <div class="entry-date">${t.date||''}</div>
+          <div class="entry-vendor">${escapeHtml(t.note||'시제금 충전')}</div>
+        </div>
+        <div class="entry-amt topup-amt">+${fmt(t.amount)}</div>
+      </div>`).join('');
+  }
+
+  const list = document.getElementById('list');
+  if(!entries.length){
+    list.innerHTML = `<div class="empty"><div class="empty-ico">🧾</div><div class="empty-title">아직 내역이 없어요</div><div class="empty-desc">우측 하단 ＋ 버튼으로 샘플비 내역을 추가하세요</div></div>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => `
+    <div class="entry" onclick="openEntrySheet('${e.id}')">
+      <div class="entry-left">
+        <div class="entry-date">${e.date||''}</div>
+        <div class="entry-vendor">${escapeHtml(e.vendor||'(거래처 미입력)')}</div>
+      </div>
+      <div class="entry-amt">-${fmt(e.amount)}</div>
+    </div>`).join('');
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ══════════════════════════════════════════════════════
+// SHEETS
+// ══════════════════════════════════════════════════════
+function sheet(html){
+  document.getElementById('sheet').innerHTML = `<div class="sheet-handle"></div>` + html;
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+}
+
+function openTopupSheet(id){
+  const t = id ? state.topups[id] : null;
+  const today = new Date().toISOString().slice(0,10);
+  sheet(`
+    <div class="sheet-title">${id?'충전 내역 수정':'시제금 충전 추가'}</div>
+    <div class="frow">
+      <label class="flabel">날짜</label>
+      <input type="date" class="finput" id="in_tdate" value="${t?t.date:today}">
+    </div>
+    <div class="frow">
+      <label class="flabel">충전 금액 (원)</label>
+      <input type="number" inputmode="numeric" class="finput" id="in_tamount" value="${t?t.amount:''}" placeholder="0">
+    </div>
+    <div class="frow">
+      <label class="flabel">메모 (선택)</label>
+      <input type="text" class="finput" id="in_tnote" value="${t?escapeAttr(t.note||''):''}" placeholder="예: 법인카드 인출, 대표 입금 등">
+    </div>
+    <div class="btnrow">
+      ${id?`<button class="btn btn-danger" onclick="deleteTopup('${id}')">삭제</button>`:`<button class="btn btn-ghost" onclick="closeSheet()">취소</button>`}
+      <button class="btn btn-dark" onclick="saveTopup(${id?`'${id}'`:'null'})">저장</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('in_tamount')?.focus(), 150);
+}
+function saveTopup(id){
+  const date = document.getElementById('in_tdate').value;
+  const amount = parseFloat(document.getElementById('in_tamount').value) || 0;
+  const note = document.getElementById('in_tnote').value.trim();
+  if(!date || !amount){ showToast('날짜와 금액을 입력해주세요'); return; }
+  const tid = id || uid();
+  const topup = { date, amount, note, _t: Date.now() };
+  if(!state.topups) state.topups = {};
+  state.topups[tid] = topup;
+  saveLocal(); render(); closeSheet();
+  if(ref) ref.child('topups').child(tid).set(topup);
+  showToast(id ? '충전 내역이 수정되었습니다' : '시제금 충전이 등록되었습니다');
+}
+function deleteTopup(id){
+  delete state.topups[id];
+  saveLocal(); render(); closeSheet();
+  if(ref) ref.child('topups').child(id).remove();
+  showToast('충전 내역이 삭제되었습니다');
+}
+
+function openEntrySheet(id){
+  const e = id ? state.entries[id] : null;
+  const today = new Date().toISOString().slice(0,10);
+  sheet(`
+    <div class="sheet-title">${id?'내역 수정':'샘플비 내역 추가'}</div>
+    <div class="frow">
+      <label class="flabel">날짜</label>
+      <input type="date" class="finput" id="in_date" value="${e?e.date:today}">
+    </div>
+    <div class="frow">
+      <label class="flabel">거래처</label>
+      <input type="text" class="finput" id="in_vendor" value="${e?escapeAttr(e.vendor||''):''}" placeholder="예: 동대문원단상가">
+    </div>
+    <div class="frow">
+      <label class="flabel">금액 (원)</label>
+      <input type="number" inputmode="numeric" class="finput" id="in_amount" value="${e?e.amount:''}" placeholder="0">
+    </div>
+    <div class="btnrow">
+      ${id?`<button class="btn btn-danger" onclick="deleteEntry('${id}')">삭제</button>`:`<button class="btn btn-ghost" onclick="closeSheet()">취소</button>`}
+      <button class="btn btn-dark" onclick="saveEntry(${id?`'${id}'`:'null'})">저장</button>
+    </div>`);
+  setTimeout(()=>document.getElementById('in_vendor')?.focus(), 150);
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORT (기간별 정산서 → JPG / PDF)
+// ══════════════════════════════════════════════════════
+function openExportSheet(){
+  const today = new Date().toISOString().slice(0,10);
+  const firstOfMonth = today.slice(0,8) + '01';
+  sheet(`
+    <div class="sheet-title">기간별 정산서 내보내기</div>
+    <div class="frow">
+      <label class="flabel">시작일</label>
+      <input type="date" class="finput" id="exp_start" value="${firstOfMonth}">
+    </div>
+    <div class="frow">
+      <label class="flabel">종료일</label>
+      <input type="date" class="finput" id="exp_end" value="${today}">
+    </div>
+    <div class="btnrow">
+      <button class="btn btn-ghost" onclick="doExport('jpg')">JPG로 저장</button>
+      <button class="btn btn-dark" onclick="doExport('pdf')">PDF로 저장</button>
+    </div>
+    <div class="exp-status" id="exportStatus"></div>`);
+}
+
+function doExport(type){
+  const start = document.getElementById('exp_start').value;
+  const end = document.getElementById('exp_end').value;
+  const statusEl = document.getElementById('exportStatus');
+  if(!start || !end){ if(statusEl) statusEl.textContent = '시작일과 종료일을 선택해주세요'; return; }
+  if(typeof html2canvas === 'undefined'){ if(statusEl) statusEl.textContent = '문서 생성 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해주세요'; return; }
+  if(statusEl) statusEl.textContent = '문서를 생성하는 중...';
+
+  const entries = Object.values(state.entries||{}).filter(e => e.date >= start && e.date <= end);
+  entries.sort((a,b)=> a.date.localeCompare(b.date));
+  const periodTotal = entries.reduce((s,e)=> s + (Number(e.amount)||0), 0);
+  const allSpent = Object.values(state.entries||{}).reduce((s,e)=> s + (Number(e.amount)||0), 0);
+  const totalCash = Object.values(state.topups||{}).reduce((s,t)=> s + (Number(t.amount)||0), 0);
+  const balance = totalCash - allSpent;
+
+  const rows = entries.map((e,i)=>`
+    <tr>
+      <td class="edoc-td edoc-idx">${i+1}</td>
+      <td class="edoc-td">${e.date}</td>
+      <td class="edoc-td">${escapeHtml(e.vendor||'-')}</td>
+      <td class="edoc-td edoc-amt">${fmt(e.amount)}</td>
+    </tr>`).join('');
+
+  document.getElementById('exportRender').innerHTML = `
+    <div class="edoc" id="edocRoot">
+      <div class="edoc-hdr">
+        <div class="edoc-brand">JEJEUNOSITY</div>
+        <div class="edoc-title">샘플비 정산서</div>
+      </div>
+      <div class="edoc-meta">
+        <div><span>담당자</span><b>박하정</b></div>
+        <div><span>정산 기간</span><b>${start} ~ ${end}</b></div>
+        <div><span>발행일</span><b>${new Date().toISOString().slice(0,10)}</b></div>
+      </div>
+      <table class="edoc-table">
+        <thead><tr><th>No</th><th>날짜</th><th>거래처</th><th>금액</th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="4" class="edoc-td" style="text-align:center;color:#999">해당 기간 내역이 없습니다</td></tr>`}</tbody>
+        <tfoot><tr><td colspan="3" class="edoc-td edoc-total-label">기간 내 지출 합계</td><td class="edoc-td edoc-amt edoc-total-val">${fmt(periodTotal)}</td></tr></tfoot>
+      </table>
+      <div class="edoc-summary">
+        <div><span>누적 시제금</span><b>${fmt(totalCash)}</b></div>
+        <div><span>전체 누적 지출</span><b>${fmt(allSpent)}</b></div>
+        <div><span>현재 잔액</span><b>${fmt(balance)}</b></div>
+      </div>
+      <div class="edoc-ftr">JEJEUNOSITY 시제장부</div>
+    </div>`;
+
+  setTimeout(()=>{
+    const target = document.getElementById('edocRoot');
+    html2canvas(target, {scale:2, backgroundColor:'#ffffff'}).then(canvas=>{
+      if(type==='jpg'){
+        const link = document.createElement('a');
+        link.download = `parkhajeong_정산_${start}_${end}.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
+        link.click();
+      } else {
+        const { jsPDF } = window.jspdf;
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const pdf = new jsPDF('p','mm','a4');
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const imgW = pageWidth - 20;
+        const imgH = imgW * canvas.height / canvas.width;
+        pdf.addImage(imgData, 'JPEG', 10, 10, imgW, imgH);
+        pdf.save(`parkhajeong_정산_${start}_${end}.pdf`);
+      }
+      if(statusEl) statusEl.textContent = '저장되었습니다';
+      setTimeout(()=>closeSheet(), 700);
+    }).catch(err=>{
+      console.error(err);
+      if(statusEl) statusEl.textContent = '내보내기 중 오류가 발생했습니다. 다시 시도해주세요';
+    });
+  }, 80);
+}
+function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+function saveEntry(id){
+  const date = document.getElementById('in_date').value;
+  const vendor = document.getElementById('in_vendor').value.trim();
+  const amount = parseFloat(document.getElementById('in_amount').value) || 0;
+  if(!date || !amount){ showToast('날짜와 금액을 입력해주세요'); return; }
+  const eid = id || uid();
+  const entry = { date, vendor, amount, _t: Date.now() };
+  if(!state.entries) state.entries = {};
+  state.entries[eid] = entry;
+  saveLocal(); render(); closeSheet();
+  if(ref) ref.child('entries').child(eid).set(entry);
+  showToast(id ? '내역이 수정되었습니다' : '내역이 추가되었습니다');
+}
+function deleteEntry(id){
+  delete state.entries[id];
+  saveLocal(); render(); closeSheet();
+  if(ref) ref.child('entries').child(id).remove();
+  showToast('내역이 삭제되었습니다');
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('on'), 1800);
+}
+</script>
+</body>
+</html>
