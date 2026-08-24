@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>제제우노시티 · 리오더 입고/공임 관리</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+  :root{
+    --bg:#f7f5f1;
+    --panel:#ffffff;
+    --ink:#2b2620;
+    --ink-soft:#6b6258;
+    --line:#e6e1d8;
+    --accent:#8a6d4f;
+    --accent-soft:#f1e8dd;
+    --good:#3f7a4f;
+    --bad:#b0503a;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:960px;margin:0 auto;padding:20px 16px 80px;}
+  header{padding:8px 0 20px;}
+  header h1{font-size:20px;margin:0 0 4px;letter-spacing:-0.02em;}
+  header p{margin:0;color:var(--ink-soft);font-size:13px;}
+
+  .tabs{display:flex;gap:6px;margin-bottom:18px;border-bottom:1px solid var(--line);}
+  .tab-btn{
+    flex:1;padding:12px 8px;background:none;border:none;font-size:14px;font-weight:600;
+    color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  }
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;margin-bottom:16px;
+  }
+  .card h2{font-size:15px;margin:0 0 14px;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px;}
+  .field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:110px;}
+  .field label{font-size:12px;color:var(--ink-soft);}
+  select, input{
+    padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;
+    background:#fff;color:var(--ink);width:100%;
+  }
+  input:focus, select:focus{outline:2px solid var(--accent-soft);border-color:var(--accent);}
+  button.primary{
+    background:var(--accent);color:#fff;border:none;border-radius:8px;
+    padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;
+  }
+  button.primary:hover{opacity:0.9;}
+  button.ghost{
+    background:none;border:1px solid var(--line);color:var(--ink-soft);
+    border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;
+  }
+  button.ghost:hover{border-color:var(--bad);color:var(--bad);}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--line);}
+  th{color:var(--ink-soft);font-weight:600;font-size:12px;}
+  tr:last-child td{border-bottom:none;}
+  .num{text-align:right;font-variant-numeric:tabular-nums;}
+  .muted{color:var(--ink-soft);font-size:12px;}
+  .badge{
+    display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;
+    background:var(--accent-soft);color:var(--accent);
+  }
+  .preview{
+    background:var(--accent-soft);border-radius:8px;padding:10px 12px;font-size:13px;
+    color:var(--accent);font-weight:600;
+  }
+  .pay-input{width:110px;}
+  .balance-pos{color:var(--bad);font-weight:600;}
+  .balance-neg{color:var(--good);font-weight:600;}
+  .balance-zero{color:var(--ink-soft);}
+  .empty{color:var(--ink-soft);font-size:13px;padding:20px 0;text-align:center;}
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;
+  }
+  .toast.show{opacity:1;}
+  .loading{color:var(--ink-soft);font-size:13px;padding:20px;text-align:center;}
+  .sync-status{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:6px;margin-top:4px;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--good);display:inline-block;}
+  .sync-dot.off{background:var(--bad);}
+  .sync-dot.wait{background:var(--accent);}
+  .factory-tag{
+    display:inline-block;padding:5px 12px;margin:3px 4px 3px 0;border-radius:20px;
+    background:var(--accent-soft);color:var(--accent);font-size:13px;font-weight:600;
+  }
+  .size-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:8px;}
+  .size-cell{display:flex;flex-direction:column;gap:4px;}
+  .size-cell label{font-size:11px;color:var(--ink-soft);text-align:center;font-weight:600;}
+  .size-cell input{padding:7px 4px;text-align:center;font-size:13px;}
+  .size-breakdown{font-size:12px;color:var(--ink-soft);}
+  .color-block{border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg);}
+  .color-block-hdr{display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;}
+  .color-block-hdr .field{max-width:200px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>리오더 입고 · 공임 관리</h1>
+    <p>제제우노시티 · 공장별 입고 등록 및 공임 자동 정산 (매월 15일 / 30일)</p>
+    <div class="sync-status"><span class="sync-dot wait" id="syncDot"></span><span id="syncText">리오더 상품DB 연결 중...</span></div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="factories">공장/품목 단가</button>
+    <button class="tab-btn" data-tab="receipts">입고 등록</button>
+    <button class="tab-btn" data-tab="settle">공임 정산</button>
+    <button class="tab-btn" data-tab="run">정산 실행</button>
+  </div>
+
+  <div id="loading" class="loading">불러오는 중...</div>
+
+  <!-- 공장/품목 단가 -->
+  <div class="panel" id="panel-factories">
+    <div class="card">
+      <h2>공장 목록 <span class="muted">(리오더 앱 상품DB와 자동 연동)</span></h2>
+      <p class="muted" style="margin:0 0 10px;">공장은 리오더 앱의 "상품 DB → 설정"에서 등록/관리합니다. 여기서는 자동으로 불러오기만 합니다.</p>
+      <div id="factoryTags"></div>
+    </div>
+
+    <div class="card">
+      <h2>품목별 공임 단가 <span class="muted">(상품DB 원가표에서 자동 연동)</span></h2>
+      <p class="muted" style="margin:0 0 10px;">공임은 리오더 앱 "상품 DB → 원가 입력"에 등록된 공임(원) 값을 그대로 가져옵니다. 여기서 따로 입력하지 않습니다.</p>
+      <div class="row">
+        <div class="field"><label>시즌</label><select id="rateSeasonSelect" onchange="renderRates()"></select></div>
+        <div class="field"><label>공장</label>
+          <select id="rateFactorySelect" onchange="renderRates()"></select>
+        </div>
+      </div>
+      <table><thead><tr><th>품목명</th><th class="num">공임(원가표 기준)</th></tr></thead>
+        <tbody id="rateList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 입고 등록 -->
+  <div class="panel" id="panel-receipts">
+    <div class="card">
+      <h2>입고 등록</h2>
+      <div class="row">
+        <div class="field"><label>입고일</label><input id="receiptDate" type="date"></div>
+        <div class="field"><label>시즌</label><select id="receiptSeason" onchange="renderItemOptions()"></select></div>
+        <div class="field"><label>공장</label><select id="receiptFactory" onchange="renderItemOptions()"></select></div>
+        <div class="field"><label>품목</label><select id="receiptItem" onchange="updatePreview()"></select></div>
+      </div>
+      <div class="field" style="margin-bottom:8px;"><label>컬러별 사이즈 입고 수량</label></div>
+      <div id="colorBlocks"></div>
+      <button class="ghost" style="margin-top:4px;" onclick="addColorBlock()">+ 컬러 추가</button>
+      <div class="row" style="align-items:center;margin-top:14px;">
+        <div class="preview" id="receiptPreview">품목과 컬러별 사이즈 수량을 입력하면 예상 공임과 결제일이 표시됩니다.</div>
+        <button class="primary" onclick="addReceipt()">입고 등록</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>최근 입고 내역</h2>
+      <div class="row">
+        <div class="field" style="max-width:200px;"><label>시즌 필터</label>
+          <select id="receiptListSeasonFilter" onchange="renderReceiptList()"><option value="">전체 시즌</option></select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>입고일</th><th>시즌</th><th>공장</th><th>품목</th><th>컬러/사이즈별 수량</th><th class="num">총수량</th><th class="num">공임</th><th>결제 예정일</th><th></th></tr></thead>
+        <tbody id="receiptList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 정산 -->
+  <div class="panel" id="panel-settle">
+    <div class="card">
+      <h2>공장별 공임 정산</h2>
+      <div class="row">
+        <div class="field"><label>공장</label><select id="settleFactory" onchange="renderSettlement()"></select></div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>정산 기간</th><th class="num">이번 기간 공임</th><th class="num">이전 이월</th>
+          <th class="num">이번 결제 대상액</th><th class="num">결제액 입력</th><th class="num">잔액(이월)</th>
+        </tr></thead>
+        <tbody id="settleList"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 정산 실행 (기준일 기반 전체 공장 리스트) -->
+  <div class="panel" id="panel-run">
+    <div class="card">
+      <h2>기준일로 정산 리스트 생성</h2>
+      <p class="muted" style="margin:-6px 0 14px;">15일·30일에서 하루이틀 벗어나 결제하더라도, 기준일을 지정하면 그 날짜가 속한 정산 기간(15일 또는 말일)을 자동으로 찾아 전체 공장의 결제 대상 리스트를 만들어줍니다.</p>
+      <div class="row">
+        <div class="field"><label>정산 기준일</label><input id="runDate" type="date"></div>
+        <button class="primary" onclick="runSettlement()">정산 리스트 생성</button>
+      </div>
+      <div class="preview" id="runPeriodLabel" style="display:none;"></div>
+    </div>
+
+    <div class="card" id="runResultCard" style="display:none;">
+      <h2>공장별 결제 대상액</h2>
+      <table>
+        <thead><tr>
+          <th>공장</th><th class="num">이번 기간 공임</th><th class="num">이전 이월</th>
+          <th class="num">결제 대상액</th><th class="num">결제액 입력</th><th class="num">잔액(이월)</th>
+        </tr></thead>
+        <tbody id="runList"></tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--line);">
+            <td style="font-weight:600;">합계</td><td></td><td></td>
+            <td class="num" id="runTotalDue" style="font-weight:600;"></td>
+            <td class="num" id="runTotalPaid" style="font-weight:600;"></td>
+            <td class="num" id="runTotalBalance" style="font-weight:600;"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let state = { factories: [], rates: {}, receipts: [], payments: {} };
+let ready = false;
+
+// ── 리오더 상품DB(Firebase) 연동 — 읽기 전용 ──
+const firebaseConfig = {
+  apiKey: "AIzaSyDTfiNbbleGz69wr8dYqlOp1vyl3-l3sxY",
+  authDomain: "jejeunosity-reorder.firebaseapp.com",
+  databaseURL: "https://jejeunosity-reorder-default-rtdb.firebaseio.com",
+  projectId: "jejeunosity-reorder",
+  storageBucket: "jejeunosity-reorder.firebasestorage.app",
+  messagingSenderId: "1005352974921",
+  appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
+};
+let csSeasons = {};
+let productsBySeasonFactory = {}; // { 시즌명: { 공장명: { 품목명: 공임 } } }
+
+function setSyncStatus(state_, text){
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  dot.className = 'sync-dot' + (state_==='off' ? ' off' : state_==='wait' ? ' wait' : '');
+  txt.textContent = text;
+}
+
+function initFirebaseSync(){
+  try{
+    if(typeof firebase === 'undefined' || !firebase.database) throw new Error('Firebase 로드 실패');
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const CS = db.ref('costsheet');
+
+    CS.child('settings').on('value', snap=>{
+      const factories = (snap.val() && snap.val().factories) || [];
+      state.factories = factories.map(name=>({id: name, name}));
+      renderAll();
+    }, err=>{ setSyncStatus('off', '상품DB 연결 실패 — 오프라인 상태'); });
+
+    CS.child('seasons').on('value', snap=>{
+      csSeasons = snap.val() || {};
+      rebuildProductCatalog();
+      setSyncStatus('on', '리오더 상품DB와 연동됨');
+      renderAll();
+    }, err=>{ setSyncStatus('off', '상품DB 연결 실패 — 오프라인 상태'); });
+  }catch(e){
+    setSyncStatus('off', '상품DB 연결 실패 — 오프라인 상태 (' + e.message + ')');
+  }
+}
+
+const SIZES = ['18M','XS','S','M','L','XL','JS','JM','Free'];
+
+function rebuildProductCatalog(){
+  productsBySeasonFactory = {};
+  Object.values(csSeasons).forEach(season=>{
+    const sName = (season.name || '').trim();
+    if(!sName || !season.products) return;
+    Object.values(season.products).forEach(p=>{
+      const name = (p.productName_kr || '').trim();
+      const factory = (p.factory || '').trim();
+      if(!name || !factory) return;
+      const rate = (p.costItems && p.costItems.sewing) || 0;
+      if(!productsBySeasonFactory[sName]) productsBySeasonFactory[sName] = {};
+      if(!productsBySeasonFactory[sName][factory]) productsBySeasonFactory[sName][factory] = {};
+      productsBySeasonFactory[sName][factory][name] = rate;
+    });
+  });
+}
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function loadAll(){
+  try{
+    const r = await window.storage.get('receipts').catch(()=>null);
+    if(r && r.value) state.receipts = JSON.parse(r.value);
+  }catch(e){}
+  try{
+    const p = await window.storage.get('payments').catch(()=>null);
+    if(p && p.value) state.payments = JSON.parse(p.value);
+  }catch(e){}
+  ready = true;
+  document.getElementById('loading').style.display = 'none';
+  resetColorBlocks();
+  renderAll();
+  initFirebaseSync();
+}
+
+async function saveReceipts(){
+  try{
+    await window.storage.set('receipts', JSON.stringify(state.receipts));
+  }catch(e){ toast('저장 실패 - 다시 시도해주세요'); }
+}
+async function savePayments(){
+  try{
+    await window.storage.set('payments', JSON.stringify(state.payments));
+  }catch(e){ toast('저장 실패 - 다시 시도해주세요'); }
+}
+
+// ---------- 공장/단가 (읽기 전용, 상품DB 연동) ----------
+function renderFactoryTags(){
+  const box = document.getElementById('factoryTags');
+  if(state.factories.length===0){
+    box.innerHTML = '<div class="empty">아직 상품DB에 등록된 공장이 없습니다</div>';
+    return;
+  }
+  box.innerHTML = state.factories.map(f=>`<span class="factory-tag">${f.name}</span>`).join('');
+}
+
+function renderFactorySelects(){
+  const opts = state.factories.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  const empty = '<option value="">공장을 선택하세요</option>';
+  ['rateFactorySelect','receiptFactory','settleFactory'].forEach(id=>{
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = empty + opts;
+    if(state.factories.find(f=>f.id===cur)) el.value = cur;
+  });
+}
+
+function renderSeasonSelects(){
+  const seasonNames = Object.keys(productsBySeasonFactory).sort();
+  const opts = seasonNames.map(n=>`<option value="${n}">${n}</option>`).join('');
+  const empty = '<option value="">시즌을 선택하세요</option>';
+  ['rateSeasonSelect','receiptSeason'].forEach(id=>{
+    const el = document.getElementById(id);
+    const cur = el.value;
+    el.innerHTML = empty + opts;
+    if(seasonNames.includes(cur)) el.value = cur;
+  });
+  const filterEl = document.getElementById('receiptListSeasonFilter');
+  const curFilter = filterEl.value;
+  filterEl.innerHTML = '<option value="">전체 시즌</option>' + opts;
+  if(seasonNames.includes(curFilter)) filterEl.value = curFilter;
+}
+
+function renderRates(){
+  const season = document.getElementById('rateSeasonSelect').value;
+  const facId = document.getElementById('rateFactorySelect').value;
+  const tbody = document.getElementById('rateList');
+  const items = (season && facId && productsBySeasonFactory[season]) ? productsBySeasonFactory[season][facId] : null;
+  if(!season || !facId || !items || Object.keys(items).length===0){
+    tbody.innerHTML = '<tr><td colspan="2" class="empty">시즌과 공장을 선택해주세요 (해당 조합에 배정된 상품이 없을 수 있습니다)</td></tr>';
+    return;
+  }
+  tbody.innerHTML = Object.entries(items).map(([name, rate])=>`
+    <tr><td>${name}</td><td class="num">${rate ? rate.toLocaleString()+'원' : '<span class="muted">미입력</span>'}</td></tr>
+  `).join('');
+}
+
+// ---------- 입고 등록 (시즌 · 컬러 · 사이즈별 수량) ----------
+let colorBlockIds = [];
+let colorBlockSeq = 0;
+
+function addColorBlock(){
+  const id = 'cb' + (colorBlockSeq++);
+  colorBlockIds.push(id);
+  renderColorBlocks();
+}
+function removeColorBlock(id){
+  if(colorBlockIds.length<=1){ toast('컬러는 최소 1개 필요합니다'); return; }
+  colorBlockIds = colorBlockIds.filter(x=>x!==id);
+  renderColorBlocks();
+}
+function resetColorBlocks(){
+  colorBlockIds = ['cb' + (colorBlockSeq++)];
+  renderColorBlocks();
+}
+function renderColorBlocks(){
+  const box = document.getElementById('colorBlocks');
+  box.innerHTML = colorBlockIds.map(id=>`
+    <div class="color-block" data-block-id="${id}">
+      <div class="color-block-hdr">
+        <div class="field"><label>컬러명</label><input type="text" class="color-name-input" placeholder="예: 브라운" oninput="updatePreview()"></div>
+        <button class="ghost" onclick="removeColorBlock('${id}')">컬러 삭제</button>
+      </div>
+      <div class="size-grid">
+        ${SIZES.map(sz=>`
+          <div class="size-cell">
+            <label>${sz}</label>
+            <input type="number" min="0" placeholder="0" data-size="${sz}" oninput="updatePreview()">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function getColorSizeData(){
+  const colors = [];
+  document.querySelectorAll('.color-block').forEach(block=>{
+    const colorName = (block.querySelector('.color-name-input').value || '').trim();
+    const sizes = {};
+    block.querySelectorAll('input[data-size]').forEach(inp=>{
+      const v = parseFloat(inp.value);
+      if(!isNaN(v) && v>0) sizes[inp.dataset.size] = v;
+    });
+    if(Object.keys(sizes).length>0){
+      colors.push({color: colorName || '컬러 미지정', sizes});
+    }
+  });
+  return colors;
+}
+
+function totalQtyFromColors(colors){
+  return colors.reduce((sum,c)=> sum + Object.values(c.sizes).reduce((s,v)=>s+v,0), 0);
+}
+
+function colorSizeBreakdownText(colors){
+  return (colors||[]).map(c=>
+    `${c.color} (${Object.entries(c.sizes).map(([sz,q])=>`${sz} ${q}`).join(', ')})`
+  ).join(' / ');
+}
+
+function renderItemOptions(){
+  const season = document.getElementById('receiptSeason').value;
+  const facId = document.getElementById('receiptFactory').value;
+  const sel = document.getElementById('receiptItem');
+  const items = (season && facId && productsBySeasonFactory[season] && productsBySeasonFactory[season][facId])
+    ? Object.keys(productsBySeasonFactory[season][facId]).sort() : [];
+  sel.innerHTML = items.length
+    ? items.map(n=>`<option value="${n}">${n}</option>`).join('')
+    : '<option value="">해당 시즌·공장에 배정된 상품이 없습니다</option>';
+  updatePreview();
+}
+
+function periodForDate(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const y = d.getFullYear(), m = d.getMonth();
+  if(d.getDate() <= 15){
+    return {label:`${y}년 ${m+1}월 15일`, key:`${y}-${String(m+1).padStart(2,'0')}-15`, sortKey: y*1000+m*10+0};
+  } else {
+    const lastDay = new Date(y, m+1, 0).getDate();
+    return {label:`${y}년 ${m+1}월 ${lastDay}일`, key:`${y}-${String(m+1).padStart(2,'0')}-30`, sortKey: y*1000+m*10+1};
+  }
+}
+
+function getCurrentRate(){
+  const season = document.getElementById('receiptSeason').value;
+  const facId = document.getElementById('receiptFactory').value;
+  const item = document.getElementById('receiptItem').value;
+  return (productsBySeasonFactory[season] && productsBySeasonFactory[season][facId] && productsBySeasonFactory[season][facId][item]) || 0;
+}
+
+function updatePreview(){
+  const season = document.getElementById('receiptSeason').value;
+  const facId = document.getElementById('receiptFactory').value;
+  const item = document.getElementById('receiptItem').value;
+  const colors = getColorSizeData();
+  const qty = totalQtyFromColors(colors);
+  const dateEl = document.getElementById('receiptDate');
+  const box = document.getElementById('receiptPreview');
+  if(!season || !facId || !item || qty<=0){
+    box.textContent = '품목과 컬러별 사이즈 수량을 입력하면 예상 공임과 결제일이 표시됩니다.';
+    return;
+  }
+  const rate = getCurrentRate();
+  const total = rate * qty;
+  const dateStr = dateEl.value || new Date().toISOString().slice(0,10);
+  const period = periodForDate(dateStr);
+  box.textContent = `예상 공임 ${total.toLocaleString()}원 (개당 ${rate.toLocaleString()}원 × 총 ${qty}개) · 결제 예정일: ${period.label}`;
+}
+
+function addReceipt(){
+  const season = document.getElementById('receiptSeason').value;
+  const facId = document.getElementById('receiptFactory').value;
+  const item = document.getElementById('receiptItem').value;
+  const colors = getColorSizeData();
+  const qty = totalQtyFromColors(colors);
+  const dateEl = document.getElementById('receiptDate');
+  const dateStr = dateEl.value || new Date().toISOString().slice(0,10);
+  if(!season){ toast('시즌을 선택해주세요'); return; }
+  if(!facId){ toast('공장을 선택해주세요'); return; }
+  if(!item){ toast('품목을 선택해주세요'); return; }
+  if(qty<=0){ toast('컬러별 사이즈 수량을 입력해주세요'); return; }
+  const rate = getCurrentRate();
+  const period = periodForDate(dateStr);
+  state.receipts.push({
+    id: uid(), date: dateStr, season, factoryId: facId, item, qty, colors,
+    rate, laborTotal: rate*qty, periodKey: period.key, periodLabel: period.label, periodSort: period.sortKey
+  });
+  resetColorBlocks();
+  saveReceipts();
+  renderAll();
+  toast('입고가 등록되었습니다');
+}
+
+function removeReceipt(id){
+  if(!confirm('이 입고 내역을 삭제할까요?')) return;
+  state.receipts = state.receipts.filter(r=>r.id!==id);
+  saveReceipts();
+  renderAll();
+}
+
+function renderReceiptList(){
+  const tbody = document.getElementById('receiptList');
+  const filterSeason = document.getElementById('receiptListSeasonFilter').value;
+  let sorted = [...state.receipts].sort((a,b)=> b.date.localeCompare(a.date));
+  if(filterSeason) sorted = sorted.filter(r=> r.season === filterSeason);
+  if(sorted.length===0){
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">입고 내역이 없습니다</td></tr>';
+    return;
+  }
+  tbody.innerHTML = sorted.slice(0,50).map(r=>{
+    const fac = state.factories.find(f=>f.id===r.factoryId);
+    return `<tr>
+      <td>${r.date}</td><td>${r.season||'-'}</td><td>${fac?fac.name:'-'}</td><td>${r.item}</td>
+      <td class="size-breakdown">${colorSizeBreakdownText(r.colors || [])}</td>
+      <td class="num">${r.qty}</td><td class="num">${r.laborTotal.toLocaleString()}원</td>
+      <td><span class="badge">${r.periodLabel}</span></td>
+      <td><button class="ghost" onclick="removeReceipt('${r.id}')">삭제</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- 정산 ----------
+function renderSettlement(){
+  const facId = document.getElementById('settleFactory').value;
+  const tbody = document.getElementById('settleList');
+  if(!facId){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">공장을 선택해주세요</td></tr>';
+    return;
+  }
+  const receiptsForFactory = state.receipts.filter(r=>r.factoryId===facId);
+  const periodKeys = [...new Set(receiptsForFactory.map(r=>r.periodKey))];
+  // 결제 기록이 있지만 입고가 없는 기간도 포함
+  Object.keys(state.payments).forEach(k=>{
+    if(k.startsWith(facId+'|')){
+      const pk = k.split('|')[1];
+      if(!periodKeys.includes(pk)) periodKeys.push(pk);
+    }
+  });
+  periodKeys.sort();
+
+  if(periodKeys.length===0){
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">정산 내역이 없습니다</td></tr>';
+    return;
+  }
+
+  let carry = 0;
+  let rows = '';
+  periodKeys.forEach(pk=>{
+    const laborSum = receiptsForFactory.filter(r=>r.periodKey===pk).reduce((s,r)=>s+r.laborTotal,0);
+    const sample = receiptsForFactory.find(r=>r.periodKey===pk);
+    const label = sample ? sample.periodLabel : pk;
+    const carryIn = carry;
+    const due = laborSum + carryIn;
+    const paymentKey = facId+'|'+pk;
+    const paid = state.payments[paymentKey] || 0;
+    const balance = due - paid;
+    carry = balance;
+
+    let balClass = 'balance-zero';
+    let balText = '0원';
+    if(balance > 0){ balClass='balance-pos'; balText = `${balance.toLocaleString()}원 (미지급 → 다음 기간 이월)`; }
+    else if(balance < 0){ balClass='balance-neg'; balText = `${Math.abs(balance).toLocaleString()}원 초과지급 (다음 기간 차감)`; }
+
+    rows += `<tr>
+      <td>${label}</td>
+      <td class="num">${laborSum.toLocaleString()}원</td>
+      <td class="num">${carryIn===0?'-':(carryIn>0? carryIn.toLocaleString()+'원' : '(초과)'+Math.abs(carryIn).toLocaleString()+'원')}</td>
+      <td class="num">${due.toLocaleString()}원</td>
+      <td class="num"><input class="pay-input" type="number" value="${paid||''}" placeholder="0"
+          onchange="updatePayment('${facId}','${pk}', this.value)"></td>
+      <td class="num ${balClass}">${balText}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = rows;
+}
+
+function updatePayment(facId, periodKey, value){
+  const amt = parseFloat(value);
+  const key = facId+'|'+periodKey;
+  if(isNaN(amt) || value===''){ delete state.payments[key]; }
+  else state.payments[key] = amt;
+  savePayments();
+  renderSettlement();
+  toast('결제액이 저장되었습니다');
+}
+
+function periodKeysForFactory(facId){
+  const receiptsForFactory = state.receipts.filter(r=>r.factoryId===facId);
+  const keys = new Set(receiptsForFactory.map(r=>r.periodKey));
+  Object.keys(state.payments).forEach(k=>{
+    if(k.startsWith(facId+'|')) keys.add(k.split('|')[1]);
+  });
+  return [...keys].sort();
+}
+
+function computeFactoryUpToPeriod(facId, targetKey){
+  const receiptsForFactory = state.receipts.filter(r=>r.factoryId===facId);
+  let keys = periodKeysForFactory(facId);
+  if(!keys.includes(targetKey)) keys = [...keys, targetKey].sort();
+  let carry = 0, result = {laborSum:0, carryIn:0, due:0, paid:0, balance:0};
+  for(const k of keys){
+    const laborSum = receiptsForFactory.filter(r=>r.periodKey===k).reduce((s,r)=>s+r.laborTotal,0);
+    const carryIn = carry;
+    const due = laborSum + carryIn;
+    const paid = state.payments[facId+'|'+k] || 0;
+    const balance = due - paid;
+    if(k === targetKey){ result = {laborSum, carryIn, due, paid, balance}; }
+    carry = balance;
+  }
+  return result;
+}
+
+function runSettlement(){
+  const dateEl = document.getElementById('runDate');
+  const dateStr = dateEl.value || new Date().toISOString().slice(0,10);
+  const period = periodForDate(dateStr);
+  const labelBox = document.getElementById('runPeriodLabel');
+  labelBox.style.display = 'block';
+  labelBox.textContent = `정산 기간: ${period.label} 기준 (입력하신 기준일: ${dateStr})`;
+
+  const resultCard = document.getElementById('runResultCard');
+  const tbody = document.getElementById('runList');
+  let rows = '';
+  let totalDue = 0, totalPaid = 0, totalBalance = 0;
+  let count = 0;
+
+  state.factories.forEach(fac=>{
+    const r = computeFactoryUpToPeriod(fac.id, period.key);
+    if(r.laborSum === 0 && r.carryIn === 0 && r.paid === 0) return; // 이 공장은 해당 기간과 무관
+    count++;
+    totalDue += r.due; totalPaid += r.paid; totalBalance += r.balance;
+    let balClass = 'balance-zero', balText = '0원';
+    if(r.balance > 0){ balClass='balance-pos'; balText = `${r.balance.toLocaleString()}원 (다음 기간 이월)`; }
+    else if(r.balance < 0){ balClass='balance-neg'; balText = `${Math.abs(r.balance).toLocaleString()}원 초과지급`; }
+    rows += `<tr>
+      <td>${fac.name}</td>
+      <td class="num">${r.laborSum.toLocaleString()}원</td>
+      <td class="num">${r.carryIn===0?'-':(r.carryIn>0? r.carryIn.toLocaleString()+'원' : '(초과)'+Math.abs(r.carryIn).toLocaleString()+'원')}</td>
+      <td class="num">${r.due.toLocaleString()}원</td>
+      <td class="num"><input class="pay-input" type="number" value="${r.paid||''}" placeholder="0"
+          onchange="updatePaymentFromRun('${fac.id}','${period.key}', this.value)"></td>
+      <td class="num ${balClass}">${balText}</td>
+    </tr>`;
+  });
+
+  if(count===0){
+    resultCard.style.display = 'block';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">해당 기간에 정산할 공장이 없습니다</td></tr>';
+    document.getElementById('runTotalDue').textContent = '';
+    document.getElementById('runTotalPaid').textContent = '';
+    document.getElementById('runTotalBalance').textContent = '';
+    return;
+  }
+
+  resultCard.style.display = 'block';
+  tbody.innerHTML = rows;
+  document.getElementById('runTotalDue').textContent = totalDue.toLocaleString()+'원';
+  document.getElementById('runTotalPaid').textContent = totalPaid.toLocaleString()+'원';
+  document.getElementById('runTotalBalance').textContent = (totalBalance<0?'(초과)':'') + Math.abs(totalBalance).toLocaleString()+'원';
+}
+
+function updatePaymentFromRun(facId, periodKey, value){
+  updatePayment(facId, periodKey, value);
+  runSettlement();
+}
+
+// ---------- 렌더 총괄 ----------
+function renderAll(){
+  if(!ready) return;
+  renderFactoryTags();
+  renderFactorySelects();
+  renderSeasonSelects();
+  renderRates();
+  renderItemOptions();
+  renderReceiptList();
+  renderSettlement();
+  updatePreview();
+}
+
+// 탭 전환
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+document.getElementById('panel-factories').classList.add('active');
+
+// 오늘 날짜 기본값
+document.getElementById('receiptDate').value = new Date().toISOString().slice(0,10);
+document.getElementById('runDate').value = new Date().toISOString().slice(0,10);
+
+loadAll();
+</script>
+</body>
+</html>
