@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>원가계산기 — JEJEUNOSITY</title>
+<style>
+  :root{
+    --accent:#5B4B8A;
+    --accent-soft:#EDE9F5;
+    --bg:#FAF6EF;
+    --card:#FFFFFF;
+    --ink:#26241F;
+    --ink-soft:#8A8578;
+    --line:#EDE7DA;
+    --expense:#C24A3B;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;}
+  body{padding-bottom:100px}
+  .topbar{padding:22px 20px 14px;position:sticky;top:0;background:var(--bg);z-index:10}
+  .brand{font-size:10px;letter-spacing:2.5px;color:var(--ink-soft);font-weight:700;margin-bottom:4px}
+  .title{font-size:23px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:8px}
+  .title .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);display:inline-block;flex-shrink:0}
+
+  .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 22px 10px;gap:10px}
+  .sec-hdr-left{display:flex;align-items:center;gap:8px;min-width:0}
+  .back-btn{border:none;background:none;font-size:20px;cursor:pointer;padding:4px;color:var(--ink);flex-shrink:0}
+  .sec-title{font-size:14px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sec-count{font-size:12px;color:var(--ink-soft);font-weight:600;margin-left:6px}
+  .add-btn{background:var(--ink);color:#fff;border:none;border-radius:10px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;flex-shrink:0;white-space:nowrap}
+
+  .list{padding:0 20px;display:flex;flex-direction:column;gap:8px}
+  .entry{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:10px}
+  .entry-thumb{width:44px;height:44px;border-radius:10px;object-fit:cover;flex-shrink:0;background:var(--accent-soft)}
+  .entry-left{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+  .entry-date{font-size:11px;color:var(--ink-soft);font-weight:600}
+  .entry-name{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .entry-sub{font-size:12px;color:var(--ink-soft);margin-top:1px}
+  .entry-amt{font-size:15px;font-weight:800;color:var(--accent);flex-shrink:0;padding-left:4px;font-variant-numeric:tabular-nums}
+
+  .empty{text-align:center;padding:60px 20px;color:var(--ink-soft)}
+  .empty-ico{font-size:34px;margin-bottom:10px}
+  .empty-title{font-size:14px;font-weight:700;color:var(--ink)}
+  .empty-desc{font-size:12.5px;margin-top:4px}
+
+  .fab{position:fixed;bottom:24px;right:20px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;box-shadow:0 8px 20px rgba(0,0,0,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:20}
+
+  .overlay{position:fixed;inset:0;background:rgba(20,18,14,.4);z-index:30;display:none}
+  .overlay.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-radius:22px 22px 0 0;padding:22px 22px calc(22px + env(safe-area-inset-bottom));z-index:31;transform:translateY(100%);transition:transform .22s ease;max-height:88vh;overflow-y:auto}
+  .sheet.on{transform:translateY(0)}
+  .sheet-handle{width:38px;height:4px;background:var(--line);border-radius:3px;margin:0 auto 16px}
+  .sheet-title{font-size:17px;font-weight:800;margin-bottom:16px}
+  .frow{margin-bottom:14px}
+  .flabel{font-size:12px;font-weight:700;color:var(--ink-soft);margin-bottom:6px;display:block}
+  .finput{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;font-size:15px;background:var(--bg);color:var(--ink);outline:none;font-family:inherit}
+  .finput:focus{border-color:var(--accent)}
+  .btnrow{display:flex;gap:8px;margin-top:18px}
+  .btn{flex:1;border:none;border-radius:11px;padding:13px;font-size:14.5px;font-weight:700;cursor:pointer}
+  .btn-ghost{background:var(--bg);color:var(--ink-soft);border:1px solid var(--line)}
+  .btn-dark{background:var(--ink);color:#fff}
+  .btn-danger{background:var(--expense);color:#fff}
+
+  .itembox{border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:8px}
+  .itembox-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .itembox-title{font-size:12.5px;font-weight:700}
+  .itembox-sub{font-size:12.5px;font-weight:700;color:var(--accent)}
+  .itembox-del{border:none;background:none;color:var(--expense);font-size:12px;font-weight:700;cursor:pointer}
+  .grid2{display:flex;gap:8px;flex-wrap:wrap}
+  .grid2 .finput{width:calc(50% - 4px)}
+
+  .costbox{background:var(--accent-soft);border-radius:14px;padding:16px;margin-top:6px}
+  .costbox-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+  .costbox-row.big{font-size:17px;font-weight:800;color:var(--accent);padding-top:8px;margin-top:6px;border-top:1px dashed var(--line)}
+
+  .photo-upload-btn{display:block;width:100%;padding:14px;border:2px dashed var(--line);border-radius:12px;text-align:center;cursor:pointer;color:var(--ink-soft);font-size:13.5px;font-weight:700;background:var(--bg)}
+  .photo-upload-btn:active{opacity:.8}
+  .photo-preview{width:100%;border-radius:12px;object-fit:cover;max-height:220px;margin-bottom:8px;display:block}
+
+  .sync{position:fixed;top:14px;right:16px;font-size:10px;color:var(--ink-soft);z-index:11}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:50;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="sync" id="syncDot"></div>
+
+<div class="topbar">
+  <div class="brand">JEJEUNOSITY</div>
+  <div class="title"><span class="dot"></span>원가계산기</div>
+</div>
+
+<!-- 시즌(카테고리) 목록 화면 -->
+<div id="screen-seasons">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left"><span class="sec-title">카테고리 (시즌)</span><span class="sec-count" id="seasonCount"></span></div>
+    <button class="add-btn" onclick="openSeasonSheet()">＋ 시즌 추가</button>
+  </div>
+  <div class="list" id="seasonList"></div>
+</div>
+
+<!-- 계산 내역 화면 (시즌 선택 후) -->
+<div id="screen-products" style="display:none">
+  <div class="sec-hdr">
+    <div class="sec-hdr-left">
+      <button class="back-btn" onclick="exitToSeasons()">←</button>
+      <span class="sec-title" id="curSeasonName"></span><span class="sec-count" id="itemCount"></span>
+    </div>
+    <button class="add-btn" onclick="openCalcSheet()">＋ 새 계산</button>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<button class="fab" id="fab" onclick="fabClick()">＋</button>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+// FIREBASE — 리오더 앱과 같은 DB(costsheet)를 사용
+// ══════════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyDTfiNbbleGz69wr8dYqlOp1vyl3-l3sxY",
+  authDomain: "jejeunosity-reorder.firebaseapp.com",
+  databaseURL: "https://jejeunosity-reorder-default-rtdb.firebaseio.com",
+  projectId: "jejeunosity-reorder",
+  storageBucket: "jejeunosity-reorder.firebasestorage.app",
+  messagingSenderId: "1005352974921",
+  appId: "1:1005352974921:web:5d803723c5713e08bb5d98"
+};
+let db, CS;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  CS = db.ref('costsheet'); // 리오더 앱의 "상품 DB 원가 관리"와 같은 데이터 경로
+} catch(e) {
+  console.warn('Firebase 초기화 실패', e);
+}
+
+// ── Cloudinary (리오더 앱과 같은 계정/프리셋) ──
+const CLOUDINARY_CLOUD = 'dgggxrwnj';
+const CLOUDINARY_PRESET = 'fzbgboej';
+async function uploadToCloudinary(file){
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', CLOUDINARY_PRESET);
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {method:'POST', body:fd});
+  if(!res.ok) throw new Error('업로드 실패');
+  const data = await res.json();
+  return data.secure_url.replace('/upload/', '/upload/w_700,q_78,f_auto/');
+}
+
+let csSettings = { lossRate:0.1, washingDefault:500, labelDefault:700 };
+if (CS) CS.child('settings').on('value', snap => {
+  const v = snap.val();
+  if (v) csSettings = { lossRate:v.lossRate??0.1, washingDefault:v.washingDefault??500, labelDefault:v.labelDefault??700 };
+});
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmt(n){ return (Math.round(n||0)).toLocaleString() + '원'; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function setSyncDot(s){ const el=document.getElementById('syncDot'); if(el) el.textContent = s; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+
+// ══════════════════════════════════════════════════════
+// STATE — 시즌(카테고리) 전체를 실시간 구독
+// ══════════════════════════════════════════════════════
+let seasons = {};      // 리오더 앱과 동일한 costsheet/seasons 전체
+let curSeasonId = null; // 지금 열려있는 시즌(카테고리)
+
+if (CS){
+  setSyncDot('연결중...');
+  CS.child('seasons').on('value', snap=>{
+    seasons = snap.val() || {};
+    if (curSeasonId) renderProducts(); else renderSeasons();
+    setSyncDot('✓ 동기화됨');
+    setTimeout(()=>setSyncDot(''), 1500);
+  }, err=>{
+    console.warn('Firebase 연결 오류:', err.message);
+    setSyncDot('오프라인');
+  });
+} else {
+  renderSeasons();
+}
+
+function curProducts(){
+  return (curSeasonId && seasons[curSeasonId]?.products) || {};
+}
+
+// ══════════════════════════════════════════════════════
+// SCREEN SWITCH
+// ══════════════════════════════════════════════════════
+function showSeasonScreen(){
+  document.getElementById('screen-seasons').style.display = '';
+  document.getElementById('screen-products').style.display = 'none';
+}
+function showProductScreen(){
+  document.getElementById('screen-seasons').style.display = 'none';
+  document.getElementById('screen-products').style.display = '';
+}
+function fabClick(){
+  if (curSeasonId) openCalcSheet(); else openSeasonSheet();
+}
+function openSeason(id){
+  curSeasonId = id;
+  document.getElementById('curSeasonName').textContent = seasons[id]?.name || '(이름 없음)';
+  showProductScreen();
+  renderProducts();
+}
+function exitToSeasons(){
+  curSeasonId = null;
+  showSeasonScreen();
+  renderSeasons();
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER — 시즌(카테고리) 목록
+// ══════════════════════════════════════════════════════
+function renderSeasons(){
+  const list = Object.entries(seasons).map(([id,s])=>({id, ...s}));
+  list.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+  document.getElementById('seasonCount').textContent = list.length ? `${list.length}건` : '';
+  const el = document.getElementById('seasonList');
+  if (!list.length){
+    el.innerHTML = `<div class="empty"><div class="empty-ico">📁</div><div class="empty-title">아직 카테고리(시즌)가 없어요</div><div class="empty-desc">"＋ 시즌 추가"로 먼저 카테고리를 만들어주세요<br>예: 26FW 샘플, 아동복 원가, 여성복 원가 등</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(s => {
+    const count = Object.keys(s.products||{}).length;
+    return `<div class="entry" onclick="openSeason('${s.id}')">
+      <div class="entry-left">
+        <div class="entry-date">${s.createdAt||''}</div>
+        <div class="entry-name">${escapeHtml(s.name||'(이름 없음)')}</div>
+      </div>
+      <div class="entry-amt" style="color:var(--ink-soft)">${count}건</div>
+    </div>`;
+  }).join('');
+}
+
+function openSeasonSheet(){
+  document.getElementById('sheet').innerHTML = `<div class="sheet-handle"></div>
+    <div class="sheet-title">새 시즌(카테고리) 추가</div>
+    <div class="frow">
+      <label class="flabel">시즌/카테고리명</label>
+      <input type="text" class="finput" id="in_seasonName" placeholder="예: 26FW 샘플, 아동복 원가">
+    </div>
+    <div class="btnrow">
+      <button class="btn btn-ghost" onclick="closeSheet()">취소</button>
+      <button class="btn btn-dark" onclick="saveSeason()">저장</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+  setTimeout(()=>document.getElementById('in_seasonName')?.focus(), 150);
+}
+function saveSeason(){
+  const name = document.getElementById('in_seasonName').value.trim();
+  if (!name){ showToast('시즌/카테고리명을 입력해주세요'); return; }
+  const sid = uid();
+  CS.child('seasons').child(sid).set({ name, line:'women', createdAt: today() });
+  closeSheet();
+  showToast('시즌이 추가되었습니다');
+  setTimeout(()=> openSeason(sid), 300);
+}
+
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('on');
+  document.getElementById('sheet').classList.remove('on');
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER — 계산 내역 (선택된 시즌 안)
+// ══════════════════════════════════════════════════════
+function renderProducts(){
+  if (!curSeasonId) return;
+  document.getElementById('curSeasonName').textContent = seasons[curSeasonId]?.name || '(이름 없음)';
+  const list = Object.entries(curProducts()).map(([id,p])=>({id, ...p}));
+  list.sort((a,b)=> (b.updatedAt||'').localeCompare(a.updatedAt||''));
+  document.getElementById('itemCount').textContent = list.length ? `${list.length}건` : '';
+  const el = document.getElementById('list');
+  if (!list.length){
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🧮</div><div class="empty-title">아직 계산 내역이 없어요</div><div class="empty-desc">우측 하단 ＋ 버튼으로 원가를 계산해보세요</div></div>`;
+    return;
+  }
+  el.innerHTML = list.map(p => `
+    <div class="entry" onclick="openCalcSheet('${p.id}')">
+      ${p.photo?`<img class="entry-thumb" src="${p.photo}">`:''}
+      <div class="entry-left">
+        <div class="entry-date">${p.updatedAt||''}</div>
+        <div class="entry-name">${escapeHtml(p.productName_kr||'(이름 없음)')}</div>
+        ${p.factory?`<div class="entry-sub">${escapeHtml(p.factory)}</div>`:''}
+      </div>
+      <div class="entry-amt">${fmt(p.costItems?.totalCost_toddler||0)}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// SHEET (계산 입력) — 전체 수정 가능 (기존 항목 클릭 시 모든 값 불러와서 수정)
+// ══════════════════════════════════════════════════════
+const FABRIC_TYPES = ['주원단','배색원단','랍빠감','안감','기타'];
+let curId = null;
+let curCI = null;
+let curPhoto = null; // 지금 열려있는 계산의 사진 URL (Cloudinary)
+
+function blankCI(){
+  return { fabrics:[], trims:[],
+    processFactory:'', dyeing:0, embroidery:0, washing: csSettings.washingDefault||500, sewing:0,
+    totalCost_toddler:0, totalCost_junior:0 };
+}
+function calcFabricSub(up, use, loss){
+  loss = loss != null ? loss : csSettings.lossRate;
+  if (!up || !use) return 0;
+  return Math.ceil(up * (use + loss));
+}
+
+function openCalcSheet(id){
+  if (!curSeasonId) return;
+  curId = id || null;
+  const p = id ? curProducts()[id] : null;
+  curCI = p?.costItems ? JSON.parse(JSON.stringify(p.costItems)) : blankCI();
+  if (!curCI.fabrics) curCI.fabrics = [];
+  if (!curCI.trims) curCI.trims = [];
+  if (curCI.processFactory == null) curCI.processFactory = '';
+  curPhoto = p?.photo || null;
+  document.getElementById('sheet').innerHTML = `<div class="sheet-handle"></div>
+    <div class="sheet-title">${id?'계산 수정':'새 원가 계산'}</div>
+    <div class="frow">
+      <label class="flabel">사진 (선택)</label>
+      <div id="photoPreview">${curPhoto?`<img class="photo-preview" src="${curPhoto}">`:''}</div>
+      <label class="photo-upload-btn">📷 ${curPhoto?'사진 변경':'사진 추가'}<input type="file" accept="image/*" style="display:none" onchange="handlePhoto(this)"></label>
+    </div>
+    <div class="frow">
+      <label class="flabel">제품/샘플명</label>
+      <input type="text" class="finput" id="in_name" value="${p?escapeAttr(p.productName_kr||''):''}" placeholder="예: 26FW 니트원피스 샘플">
+    </div>
+    <div class="frow">
+      <label class="flabel">거래처 (선택)</label>
+      <input type="text" class="finput" id="in_vendor" value="${p?escapeAttr(p.factory||''):''}" placeholder="예: 동대문원단상가">
+    </div>
+    <div id="calcBody"></div>
+    <div class="btnrow">
+      ${id?`<button class="btn btn-danger" onclick="deleteCalc('${id}')">삭제</button>`:`<button class="btn btn-ghost" onclick="closeSheet()">취소</button>`}
+      <button class="btn btn-dark" onclick="saveCalc()">저장</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+  document.getElementById('sheet').classList.add('on');
+  renderCalcBody();
+  setTimeout(()=>document.getElementById('in_name')?.focus(), 150);
+}
+
+function handlePhoto(input){
+  const file = input.files[0]; if (!file) return;
+  const pv = document.getElementById('photoPreview');
+  if (pv) pv.innerHTML = `<div style="padding:12px;color:var(--ink-soft);font-size:13px">⏳ 업로드 중...</div>`;
+  uploadToCloudinary(file).then(url=>{
+    curPhoto = url;
+    if (pv) pv.innerHTML = `<img class="photo-preview" src="${url}">`;
+  }).catch(()=>{
+    if (pv) pv.innerHTML = `<div style="padding:12px;color:var(--expense);font-size:13px">❌ 업로드 실패. 다시 시도해주세요.</div>`;
+  });
+}
+
+function renderCalcBody(){
+  const ci = curCI;
+  document.getElementById('calcBody').innerHTML = `
+    <div class="frow">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="flabel" style="margin:0">원단</span>
+        <button type="button" class="add-btn" style="padding:5px 10px;font-size:12px" onclick="addFabric()">＋ 추가</button>
+      </div>
+      <div id="fabricList">${buildFabricList()}</div>
+    </div>
+    <div class="frow">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span class="flabel" style="margin:0">부자재</span>
+        <button type="button" class="add-btn" style="padding:5px 10px;font-size:12px" onclick="addTrim()">＋ 추가</button>
+      </div>
+      <div id="trimList">${buildTrimList()}</div>
+    </div>
+    <div class="frow">
+      <span class="flabel">가공비</span>
+      <input type="text" class="finput" style="margin-bottom:8px" id="ci_factory" value="${escapeAttr(ci.processFactory||'')}" placeholder="공장명" oninput="onProcChange()">
+      <div class="grid2">
+        <input type="number" class="finput" id="ci_sewing" value="${ci.sewing||0}" placeholder="공임 (원)" inputmode="numeric" oninput="onProcChange()">
+        <input type="number" class="finput" id="ci_embroidery" value="${ci.embroidery||0}" placeholder="자수 (원)" inputmode="numeric" oninput="onProcChange()">
+        <input type="number" class="finput" id="ci_dyeing" value="${ci.dyeing||0}" placeholder="나염 (원)" inputmode="numeric" oninput="onProcChange()">
+        <input type="number" class="finput" id="ci_washing" value="${ci.washing||0}" placeholder="시아게 (원)" inputmode="numeric" oninput="onProcChange()">
+      </div>
+    </div>
+    <div class="costbox" id="costBox">${buildCostBox()}</div>`;
+}
+function buildCostBox(){
+  const ci = curCI;
+  const fTot = ci.fabrics.reduce((s,f)=> s+(f.subtotal||0), 0);
+  const tTot = ci.trims.reduce((s,t)=> s+(t.subtotal||0), 0);
+  const proc = (ci.sewing||0)+(ci.embroidery||0)+(ci.dyeing||0)+(ci.washing||0);
+  return `<div class="costbox-row"><span>원단 합계</span><span>${fmt(fTot)}</span></div>
+    <div class="costbox-row"><span>부자재 합계</span><span>${fmt(tTot)}</span></div>
+    <div class="costbox-row"><span>가공비 합계</span><span>${fmt(proc)}</span></div>
+    <div class="costbox-row big"><span>원가 합계</span><span>${fmt(ci.totalCost_toddler||0)}</span></div>`;
+}
+function buildFabricList(){
+  const fs = curCI.fabrics;
+  if (!fs.length) return `<div style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:10px 0">원단 항목을 추가해주세요</div>`;
+  return fs.map((f,i)=>`<div class="itembox">
+    <div class="itembox-hdr">
+      <span class="itembox-title">원단 ${i+1}</span>
+      <span class="itembox-sub" id="fsub_${i}">${fmt(f.subtotal||0)}</span>
+      <button type="button" class="itembox-del" onclick="removeFabric(${i})">삭제</button>
+    </div>
+    <div class="grid2">
+      <select class="finput" id="f_type_${i}" oninput="readFabric(${i})">
+        ${FABRIC_TYPES.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+      <input type="text" class="finput" id="f_sup_${i}" value="${escapeAttr(f.supplier||'')}" placeholder="공급처" oninput="readFabric(${i})">
+      <input type="text" class="finput" style="width:100%" id="f_name_${i}" value="${escapeAttr(f.fabricName||'')}" placeholder="원단명 (예: 폴리 스판덕스)" oninput="readFabric(${i})">
+      <input type="number" class="finput" id="f_up_${i}" value="${f.unitPrice||''}" placeholder="단가(원)" inputmode="numeric" oninput="readFabric(${i})">
+      <input type="number" class="finput" id="f_use_${i}" value="${f.usage||''}" placeholder="사용량(야드)" step="0.01" inputmode="decimal" oninput="readFabric(${i})">
+      <input type="number" class="finput" style="width:100%" id="f_loss_${i}" value="${f.lossRate!=null?f.lossRate:csSettings.lossRate}" placeholder="로스율 (예: 0.1)" step="0.01" inputmode="decimal" oninput="readFabric(${i})">
+    </div>
+  </div>`).join('');
+}
+function buildTrimList(){
+  const ts = curCI.trims;
+  if (!ts.length) return `<div style="color:var(--ink-soft);font-size:12.5px;text-align:center;padding:10px 0">부자재 항목을 추가해주세요</div>`;
+  return ts.map((t,i)=>`<div class="itembox">
+    <div class="itembox-hdr">
+      <span class="itembox-title">부자재 ${i+1}</span>
+      <span class="itembox-sub" id="tsub_${i}">${fmt(t.subtotal||0)}</span>
+      <button type="button" class="itembox-del" onclick="removeTrim(${i})">삭제</button>
+    </div>
+    <div class="grid2">
+      <input type="text" class="finput" id="t_name_${i}" value="${escapeAttr(t.name||'')}" placeholder="품명 (단추, 지퍼...)" oninput="readTrim(${i})">
+      <input type="text" class="finput" id="t_sup_${i}" value="${escapeAttr(t.supplier||'')}" placeholder="공급처" oninput="readTrim(${i})">
+      <input type="number" class="finput" id="t_up_${i}" value="${t.unitPrice||''}" placeholder="단가(원)" inputmode="numeric" oninput="readTrim(${i})">
+      <input type="number" class="finput" id="t_qty_${i}" value="${t.quantity||''}" placeholder="수량" inputmode="numeric" oninput="readTrim(${i})">
+    </div>
+  </div>`).join('');
+}
+function addFabric(){
+  curCI.fabrics.push({ type:'주원단', supplier:'', fabricName:'', unitPrice:0, usage:0, lossRate:csSettings.lossRate||0.1, subtotal:0 });
+  document.getElementById('fabricList').innerHTML = buildFabricList();
+}
+function removeFabric(i){ curCI.fabrics.splice(i,1); document.getElementById('fabricList').innerHTML = buildFabricList(); updateTotal(); }
+function addTrim(){
+  curCI.trims.push({ name:'', supplier:'', unitPrice:0, quantity:0, subtotal:0 });
+  document.getElementById('trimList').innerHTML = buildTrimList();
+}
+function removeTrim(i){ curCI.trims.splice(i,1); document.getElementById('trimList').innerHTML = buildTrimList(); updateTotal(); }
+function readFabric(i){
+  const f = curCI.fabrics[i]; if (!f) return;
+  f.type       = document.getElementById(`f_type_${i}`)?.value || f.type;
+  f.supplier   = document.getElementById(`f_sup_${i}`)?.value || '';
+  f.fabricName = document.getElementById(`f_name_${i}`)?.value || '';
+  f.unitPrice  = parseFloat(document.getElementById(`f_up_${i}`)?.value) || 0;
+  f.usage      = parseFloat(document.getElementById(`f_use_${i}`)?.value) || 0;
+  f.lossRate   = parseFloat(document.getElementById(`f_loss_${i}`)?.value);
+  if (isNaN(f.lossRate)) f.lossRate = csSettings.lossRate;
+  f.subtotal   = calcFabricSub(f.unitPrice, f.usage, f.lossRate);
+  const el = document.getElementById(`fsub_${i}`); if (el) el.textContent = fmt(f.subtotal);
+  updateTotal();
+}
+function readTrim(i){
+  const t = curCI.trims[i]; if (!t) return;
+  t.name      = document.getElementById(`t_name_${i}`)?.value || '';
+  t.supplier  = document.getElementById(`t_sup_${i}`)?.value || '';
+  t.unitPrice = parseFloat(document.getElementById(`t_up_${i}`)?.value) || 0;
+  t.quantity  = parseFloat(document.getElementById(`t_qty_${i}`)?.value) || 0;
+  t.subtotal  = t.unitPrice * t.quantity;
+  const el = document.getElementById(`tsub_${i}`); if (el) el.textContent = fmt(t.subtotal);
+  updateTotal();
+}
+function onProcChange(){
+  curCI.processFactory = document.getElementById('ci_factory')?.value || '';
+  curCI.sewing     = parseFloat(document.getElementById('ci_sewing')?.value)     || 0;
+  curCI.embroidery = parseFloat(document.getElementById('ci_embroidery')?.value) || 0;
+  curCI.dyeing     = parseFloat(document.getElementById('ci_dyeing')?.value)     || 0;
+  curCI.washing    = parseFloat(document.getElementById('ci_washing')?.value)    || 0;
+  updateTotal();
+}
+function updateTotal(){
+  const ci = curCI;
+  const fTot = ci.fabrics.reduce((s,f)=> s+(f.subtotal||0), 0);
+  const tTot = ci.trims.reduce((s,t)=> s+(t.subtotal||0), 0);
+  const proc = (ci.sewing||0)+(ci.embroidery||0)+(ci.dyeing||0)+(ci.washing||0);
+  ci.totalCost_toddler = fTot + tTot + proc;
+  ci.totalCost_junior = 0;
+  const box = document.getElementById('costBox'); if (box) box.innerHTML = buildCostBox();
+}
+
+// ══════════════════════════════════════════════════════
+// SAVE / DELETE — 리오더 앱과 같은 costsheet DB에 기록 (수정도 그대로 반영)
+// ══════════════════════════════════════════════════════
+function saveCalc(){
+  if (!curSeasonId) return;
+  const name = document.getElementById('in_name').value.trim();
+  const vendor = document.getElementById('in_vendor').value.trim();
+  if (!name){ showToast('제품/샘플명을 입력해주세요'); return; }
+  const pid = curId || uid();
+  const now = today();
+  const existing = curId ? curProducts()[curId] : null;
+  const product = {
+    productName_kr: name, productName_en: '', category: '원가계산기', line: 'women',
+    factory: vendor, colors: [], status: '확정',
+    photo: curPhoto || null,
+    costItems: curCI,
+    createdAt: existing?.createdAt || now,
+    updatedAt: now
+  };
+  CS.child('seasons').child(curSeasonId).child('products').child(pid).set(product);
+  closeSheet();
+  showToast(curId ? '수정되었습니다' : '저장되었습니다');
+}
+function deleteCalc(id){
+  if (!curSeasonId) return;
+  if (!confirm('이 계산 내역을 삭제하시겠습니까?')) return;
+  CS.child('seasons').child(curSeasonId).child('products').child(id).remove();
+  closeSheet();
+  showToast('삭제되었습니다');
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('on'), 1800);
+}
+</script>
+</body>
+</html>
