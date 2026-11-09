@@ -2564,6 +2564,10 @@ dbRef.on('value', snapshot => {
     });
   }
 
+  // 마스터 상품DB 실시간 감시 — 역할/화면과 상관없이 앱을 열면 바로 시작
+  // (이전엔 상품DB 화면에 들어가야만 켜져서, 매장 기기에서는 동기화가 안 됐음)
+  if (!window._csFirebaseInited) { window._csFirebaseInited = true; cs_initFirebase(); }
+
   // base64 사진 → Cloudinary 자동 마이그레이션 (1회성)
   migrateBase64Photos();
 
@@ -2774,32 +2778,41 @@ function cs_initFirebase() {
   });
   CS.child('seasons').on('value', snap => {
     cs_seasons = snap.val() || {};
+    // CS 상품DB → 리오더 jj/products 자동 동기화 (화면과 상관없이 항상 먼저 실행)
+    syncCsProductsToJj();
     const active = document.querySelector('.screen.on');
     if (!active) return;
     const id = active.id;
     if (id === 'screen-cs-seasons')  cs_renderSeasons();
     if (id === 'screen-cs-products') cs_renderProducts();
     if (id === 'screen-cs-summary')  cs_renderSummary();
-    // CS 상품DB → 리오더 jj/products 자동 동기화
-    syncCsProductsToJj();
   });
 }
 
 // ══════════════════════════════════════════════════════
 // CS → JJ 상품 동기화
 // costsheet/seasons/{csSeasonId}/products  →  jj/products
-// 시즌은 이름(name)으로 매칭. 없으면 jj/seasons에 자동 생성하지 않고 스킵.
+// 시즌은 이름(name)으로 매칭. 리오더에 같은 이름 시즌이 없으면 자동 생성.
+// (자동 생성 시즌 id = 마스터 시즌 id → 여러 기기가 동시에 동기화해도 중복 시즌이 안 생김)
 // ══════════════════════════════════════════════════════
 function syncCsProductsToJj() {
   if (!fbReady) return; // jj DB 로드 전이면 스킵
+  let seasonAdded = false;
 
   // CS 시즌별로 처리
   Object.entries(cs_seasons).forEach(([csSeasonId, csSeason]) => {
     if (!csSeason.products) return;
+    const csSeasonName = (csSeason.name || '').trim();
+    if (!csSeasonName) return;
 
-    // jj 시즌에서 같은 이름의 시즌 찾기
-    const jjSeason = seasons.find(s => s.name === csSeason.name);
-    if (!jjSeason) return; // 리오더에 같은 시즌이 없으면 스킵
+    // jj 시즌에서 같은 이름의 시즌 찾기 → 없으면 자동 생성
+    let jjSeason = seasons.find(s => (s.name || '').trim() === csSeasonName)
+                || seasons.find(s => s.id === csSeasonId);
+    if (!jjSeason) {
+      jjSeason = { id: csSeasonId, name: csSeasonName, createdAt: csSeason.createdAt || today() };
+      seasons.unshift(jjSeason);
+      seasonAdded = true;
+    }
 
     const jjSeasonId = jjSeason.id;
     let changed = false;
@@ -2835,6 +2848,11 @@ function syncCsProductsToJj() {
 
     if (changed) save('products');
   });
+
+  if (seasonAdded) {
+    save('seasons');
+    if (typeof renderSeasons === 'function' && document.querySelector('.screen.on')?.id === 'screen-seasons') renderSeasons();
+  }
 }
 
 // 수동 동기화 (카탈로그 버튼에서 호출)
